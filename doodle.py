@@ -15,6 +15,7 @@ class Model(object):
 
     def __init__(self, layers):
         self.layers = layers
+        self.pixel_mean = np.array([103.939, 116.779, 123.680], dtype=np.float32).reshape((3,1,1))
 
         self.build_model()
         self.load_params()
@@ -39,10 +40,12 @@ class Model(object):
         net['main']    = ConvLayer(net['conv4_1'], 512, 3, pad=1)
 
         # Secondary network for the semantic map.
-        net['map']   = InputLayer((1, 3, None, None))
+        net['map'] = InputLayer((1, 3, None, None))
+        net['map_2'] = PoolLayer(net['map'], 2, mode='average_exc_pad')
         net['map_3'] = PoolLayer(net['map'], 4, mode='average_exc_pad')
         net['map_4'] = PoolLayer(net['map'], 8, mode='average_exc_pad')
 
+        net['sem2_1'] = ConcatLayer([net['conv3_1'], net['map_2']])
         net['sem3_1'] = ConcatLayer([net['conv3_1'], net['map_3']])
         net['sem4_1'] = ConcatLayer([net['conv4_1'], net['map_4']])
 
@@ -67,26 +70,31 @@ class NeuralGenerator(object):
         self.model = Model(layers=['sem3_1', 'sem4_1', 'conv4_1'])
         self.iteration = 0
 
-        content = np.zeros((1, 3, 512, 512), dtype=np.float32)
-        content_map = np.zeros((1, 1, 512, 512), dtype=np.float32)
+        content_image = scipy.ndimage.imread('tree.jpg', mode='RGB')
+        self.content_image = self.prepare_image(content_image)
 
-        self.content_features = self.model.tensor_outputs['conv4_1'].eval({self.model.tensor_img: content})
+        self.content_features = self.model.tensor_outputs['conv4_1'].eval({self.model.tensor_img: self.content_image})
         self.content_loss = T.mean((self.model.tensor_outputs['conv4_1'] - self.content_features) ** 2.0)
 
         grad = T.grad(self.content_loss, self.model.tensor_img)
         self.compute_loss_and_grad = theano.function([self.model.tensor_img], [self.content_loss, grad])
 
-    def evaluate(self, Xn):
-        print(self.iteration)
+    def prepare_image(self, image):
+        image = np.swapaxes(np.swapaxes(image, 1, 2), 0, 1)[::-1, :, :]
+        image = image.astype(np.float32) - self.model.pixel_mean
+        return image[np.newaxis]
 
-        current_img = Xn.reshape((1, 3, 512, 512))
+    def evaluate(self, Xn):
+        current_img = Xn.reshape(self.content_image.shape) - self.model.pixel_mean
         loss, grads = self.compute_loss_and_grad(current_img)
 
+        print(self.iteration, 'loss', loss, 'gradients', grads.min(), grads.max())
+
         self.iteration += 1
-        return loss, grads
+        return loss, grads.flatten().astype(np.float64)
 
     def run(self):
-        Xn = np.zeros((1, 3, 512, 512), dtype=np.float32)
+        Xn = np.random.uniform(0, 255, self.content_image.shape[2:] + (3,)).astype(np.float32)
         data_bounds = np.zeros((np.product(Xn.shape), 2), dtype=np.float64)
         data_bounds[:] = (0.0, 255.0)
 
@@ -96,7 +104,7 @@ class NeuralGenerator(object):
                             bounds=data_bounds,
                             factr=0.0, pgtol=0.0,            # Disable automatic termination by setting low threshold.
                             m=16,                            # Maximum correlations kept in memory by algorithm. 
-                            maxfun=100,                      # Limit number of calls to evaluate().
+                            maxfun=5,                        # Limit number of calls to evaluate().
                             iprint=-1)                       # Handle our own logging of information.
 
 

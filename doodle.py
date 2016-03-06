@@ -79,14 +79,11 @@ class NeuralGenerator(object):
         grad = T.grad(self.content_loss, self.model.tensor_img)
         self.compute_loss_and_grad = theano.function([self.model.tensor_img], [self.content_loss, grad])
 
-    def prepare_image(self, image):
-        image = np.swapaxes(np.swapaxes(image, 1, 2), 0, 1)[::-1, :, :]
-        image = image.astype(np.float32) - self.model.pixel_mean
-        return image[np.newaxis]
-
     def evaluate(self, Xn):
         current_img = Xn.reshape(self.content_image.shape) - self.model.pixel_mean
         loss, grads = self.compute_loss_and_grad(current_img)
+
+        scipy.misc.toimage(self.finalize_image(Xn), cmin=0, cmax=255).save('frames/test%04d.png'%self.iteration)
 
         print(self.iteration, 'loss', loss, 'gradients', grads.min(), grads.max())
 
@@ -104,8 +101,18 @@ class NeuralGenerator(object):
                             bounds=data_bounds,
                             factr=0.0, pgtol=0.0,            # Disable automatic termination by setting low threshold.
                             m=16,                            # Maximum correlations kept in memory by algorithm. 
-                            maxfun=5,                        # Limit number of calls to evaluate().
+                            maxfun=100,                      # Limit number of calls to evaluate().
                             iprint=-1)                       # Handle our own logging of information.
+
+    def prepare_image(self, image):
+        image = np.swapaxes(np.swapaxes(image, 1, 2), 0, 1)[::-1, :, :]
+        image = image.astype(np.float32) - self.model.pixel_mean
+        return image[np.newaxis]
+
+    def finalize_image(self, x):
+        x = x.reshape(self.content_image.shape[1:])[::-1]
+        x = np.swapaxes(np.swapaxes(x, 0, 1), 1, 2)
+        return np.clip(x, 0, 255).astype('uint8')
 
 
 if __name__ == "__main__":

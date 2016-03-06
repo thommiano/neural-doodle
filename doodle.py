@@ -1,6 +1,7 @@
 import pickle
 
 import numpy as np
+import scipy.optimize
 import theano.tensor as T
 
 import lasagne
@@ -56,9 +57,32 @@ class Model(object):
         self.tensor_outputs = lasagne.layers.get_output([self.network[l] for l in self.layers], self.tensor_inputs)
 
 
-if __name__ == "__main__":
-    model = Model(layers=['sem3_1'])
+class NeuralGenerator(object):
 
-    img = np.zeros((1, 3, 256, 256), dtype=np.float32)
-    map = np.zeros((1, 1, 256, 256), dtype=np.float32)
-    print(model.tensor_outputs[0].eval({model.tensor_img: img, model.tensor_map: map}).shape)
+    def __init__(self):
+        self.model = Model(layers=['sem3_1'])
+
+    def evaluate(self, Xn):
+        return 0.0, np.zeros_like(Xn)
+
+    def run(self):
+        # img = np.zeros((1, 3, 512, 512), dtype=np.float32)
+        # map = np.zeros((1, 1, 512, 512), dtype=np.float32)
+
+        Xn = np.zeros((1, 3, 512, 512), dtype=np.float32)
+        data_bounds = np.zeros((np.product(Xn.shape), 2), dtype=np.float64)
+        data_bounds[:] = (0.0, 255.0)
+
+        Xn, Vn, info = scipy.optimize.fmin_l_bfgs_b(
+                            self.evaluate,
+                            Xn.astype(np.float64).flatten(),
+                            bounds=data_bounds,
+                            factr=0.0, pgtol=0.0,            # Disable automatic termination by setting low threshold.
+                            m=16,                            # Maximum correlations kept in memory by algorithm. 
+                            maxfun=100,                      # Limit number of calls to evaluate().
+                            iprint=-1)                       # Handle our own logging of information.
+
+
+if __name__ == "__main__":
+    generator = NeuralGenerator()
+    generator.run()

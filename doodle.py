@@ -2,6 +2,8 @@ import pickle
 
 import numpy as np
 import scipy.optimize
+
+import theano
 import theano.tensor as T
 
 import lasagne
@@ -54,21 +56,36 @@ class Model(object):
         self.tensor_img = T.tensor4()
         self.tensor_map = T.tensor4()
         self.tensor_inputs = {self.network['img']: self.tensor_img, self.network['map']: self.tensor_map}
-        self.tensor_outputs = lasagne.layers.get_output([self.network[l] for l in self.layers], self.tensor_inputs)
+
+        outputs = lasagne.layers.get_output([self.network[l] for l in self.layers], self.tensor_inputs)
+        self.tensor_outputs = {k: v for k, v in zip(self.layers, outputs)}
 
 
 class NeuralGenerator(object):
 
     def __init__(self):
-        self.model = Model(layers=['sem3_1'])
+        self.model = Model(layers=['sem3_1', 'sem4_1', 'conv4_1'])
+        self.iteration = 0
+
+        content = np.zeros((1, 3, 512, 512), dtype=np.float32)
+        content_map = np.zeros((1, 1, 512, 512), dtype=np.float32)
+
+        self.content_features = self.model.tensor_outputs['conv4_1'].eval({self.model.tensor_img: content})
+        self.content_loss = T.mean((self.model.tensor_outputs['conv4_1'] - self.content_features) ** 2.0)
+
+        grad = T.grad(self.content_loss, self.model.tensor_img)
+        self.compute_loss_and_grad = theano.function([self.model.tensor_img], [self.content_loss, grad])
 
     def evaluate(self, Xn):
-        return 0.0, np.zeros_like(Xn)
+        print(self.iteration)
+
+        current_img = Xn.reshape((1, 3, 512, 512))
+        loss, grads = self.compute_loss_and_grad(current_img)
+
+        self.iteration += 1
+        return loss, grads
 
     def run(self):
-        # img = np.zeros((1, 3, 512, 512), dtype=np.float32)
-        # map = np.zeros((1, 1, 512, 512), dtype=np.float32)
-
         Xn = np.zeros((1, 3, 512, 512), dtype=np.float32)
         data_bounds = np.zeros((np.product(Xn.shape), 2), dtype=np.float64)
         data_bounds[:] = (0.0, 255.0)

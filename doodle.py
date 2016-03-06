@@ -24,7 +24,7 @@ class Model(object):
     def build_model(self):
         net = {}
 
-        # First network for the main image.        
+        # First network for the main image.
         net['img']   = InputLayer((1, 3, None, None))
         net['conv1_1'] = ConvLayer(net['img'],   64, 3, pad=1)
         net['conv1_2'] = ConvLayer(net['conv1_1'], 64, 3, pad=1)
@@ -51,8 +51,8 @@ class Model(object):
         net['sem4_1'] = ConcatLayer([net['conv4_1'], net['map_4']])
 
         # Third network for the nearest neighbors.
-        net['nn3_1'] = ConvLayer(net['sem3_1'], 900, 3, b=None, pad=0)
-        net['nn4_1'] = ConvLayer(net['sem4_1'], 196, 3, b=None, pad=0)
+        net['nn3_1'] = ConvLayer(net['sem3_1'], 3844, 3, b=None, pad=0) # 3844
+        net['nn4_1'] = ConvLayer(net['sem4_1'], 900, 3, b=None, pad=0)  # 196
 
         self.network = net
 
@@ -74,26 +74,27 @@ class NeuralGenerator(object):
     def __init__(self):
         self.model = Model(layers=['sem3_1', 'sem4_1', 'conv4_1', 'nn3_1', 'nn4_1'])
         self.iteration = 0
-        
+
         self.prepare_content()
         self.prepare_style()
 
-        losses = self.style_loss # + [self.variation_loss(self.model.tensor_img)] self.content_loss
+        losses = self.content_loss + self.style_loss + [1E-2 * self.variation_loss(self.model.tensor_img)] 
         grad = T.grad(sum(losses), self.model.tensor_img)
-        self.compute_grad_and_losses = theano.function([self.model.tensor_img, self.model.tensor_map], [grad] + losses)
-        
+        self.compute_grad_and_losses = theano.function([self.model.tensor_img, self.model.tensor_map],
+                                                       [grad] + losses, on_unused_input='ignore')
+
     def prepare_content(self):
-        content_image = scipy.ndimage.imread('tree.128.jpg', mode='RGB')
+        content_image = scipy.ndimage.imread('tree.256.jpg', mode='RGB')
         self.content_image = self.prepare_image(content_image)
-        self.content_map = np.ones((1, 3, 128, 128))
+        self.content_map = np.ones((1, 3, 256, 256), dtype=np.float32)
 
         self.content_features = self.model.tensor_outputs['conv4_1'].eval({self.model.tensor_img: self.content_image})
         self.content_loss = [T.mean((self.model.tensor_outputs['conv4_1'] - self.content_features) ** 2.0)]
 
     def prepare_style(self):
-        style_image = scipy.ndimage.imread('tree.128.jpg', mode='RGB')
+        style_image = scipy.ndimage.imread('tree.256.jpg', mode='RGB')
         self.style_image = self.prepare_image(style_image)
-        self.style_map = np.ones((1, 3, 128, 128))
+        self.style_map = np.ones((1, 3, 256, 256), dtype=np.float32)
 
         for layer in ['3_1', '4_1']:
             extractor = theano.function([self.model.tensor_img, self.model.tensor_map],
@@ -128,21 +129,21 @@ class NeuralGenerator(object):
         return (((x[:,:,:-1,:-1] - x[:,:,1:,:-1])**2 + (x[:,:,:-1,:-1] - x[:,:,:-1,1:])**2)**1.25).mean()
 
     def evaluate(self, Xn):
-        current_img = Xn.reshape(self.content_image.shape) - self.model.pixel_mean
+        current_img = Xn.reshape(self.content_image.shape).astype(np.float32) - self.model.pixel_mean
         grads, *losses = self.compute_grad_and_losses(current_img, self.content_map)
         loss = sum(losses)
 
         scipy.misc.toimage(self.finalize_image(Xn), cmin=0, cmax=255).save('frames/test%04d.png'%self.iteration)
 
-        print(self.iteration, 'losses', [float(l/1000) for l in losses], 'gradients', grads.min(), grads.max())
+        print(self.iteration, 'losses', [float(l/1000) for l in losses], 'gradients', np.min(grads), np.max(grads))
 
         self.iteration += 1
-        return loss, grads.flatten().astype(np.float64)
+        return loss, np.clip(grads, -1.0, +1.0).flatten().astype(np.float64)
 
     def run(self):
         # Xn = self.content_image[0] + self.model.pixel_mean
-        
         Xn = np.random.uniform(64, 192, self.content_image.shape[2:] + (3,)).astype(np.float32)
+
         data_bounds = np.zeros((np.product(Xn.shape), 2), dtype=np.float64)
         data_bounds[:] = (0.0, 255.0)
 

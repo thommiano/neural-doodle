@@ -45,14 +45,13 @@ from lasagne.layers import InputLayer, ConcatLayer
 
 class Model(object):
 
-    def __init__(self, layers):
-        self.layers = layers
+    def __init__(self):
         self.pixel_mean = np.array([103.939, 116.779, 123.680], dtype=np.float32).reshape((3,1,1))
 
-        self.build_model()
-        self.load_params()
+        self.setup_model()
+        self.load_data()
 
-    def build_model(self):
+    def setup_model(self):
         net = {}
 
         # First network for the main image.
@@ -82,45 +81,43 @@ class Model(object):
         net['sem3_1'] = ConcatLayer([net['conv3_1'], net['map_3']])
         net['sem4_1'] = ConcatLayer([net['conv4_1'], net['map_4']])
 
-        # Third network for the nearest neighbors.
-        net['nn3_1'] = ConvLayer(net['sem3_1'], 900, 3, b=None, pad=0) # 3844
-        net['nn4_1'] = ConvLayer(net['sem4_1'], 196, 3, b=None, pad=0)  # 196
+        # Third network for the nearest neighbors (default size for now).
+        net['nn3_1'] = ConvLayer(net['sem3_1'], 1, 3, b=None, pad=0)
+        net['nn4_1'] = ConvLayer(net['sem4_1'], 1, 3, b=None, pad=0)
 
         self.network = net
 
-    def load_params(self): 
-        pretrained_model = pickle.load(open('vgg19_conv.pkl', 'rb'))
+    def load_data(self): 
+        data = pickle.load(open('vgg19_conv.pkl', 'rb'))
         params = lasagne.layers.get_all_param_values(self.network['main'])
-        lasagne.layers.set_all_param_values(self.network['main'], pretrained_model[:len(params)])
+        lasagne.layers.set_all_param_values(self.network['main'], data[:len(params)])
 
+    def prepare(self, layers):
         self.tensor_img = T.tensor4()
         self.tensor_map = T.tensor4()
         self.tensor_inputs = {self.network['img']: self.tensor_img, self.network['map']: self.tensor_map}
 
-        outputs = lasagne.layers.get_output([self.network[l] for l in self.layers], self.tensor_inputs)
-        self.tensor_outputs = {k: v for k, v in zip(self.layers, outputs)}
+        outputs = lasagne.layers.get_output([self.network[l] for l in layers], self.tensor_inputs)
+        self.tensor_outputs = {k: v for k, v in zip(layers, outputs)}
 
 
 class NeuralGenerator(object):
 
     def __init__(self):
-        self.model = Model(layers=['sem3_1', 'sem4_1', 'conv4_2', 'nn3_1', 'nn4_1'])
+        self.model = Model()
         self.iteration = 0
 
+        self.model.prepare(layers=['sem3_1', 'sem4_1', 'conv4_2'])
         self.prepare_content()
         self.prepare_style()
+
+        self.model.prepare(layers=['sem3_1', 'sem4_1', 'conv4_2', 'nn3_1', 'nn4_1'])
         self.prepare_optimization()
 
     def prepare_content(self):
         content_image = scipy.ndimage.imread(args.content, mode='RGB')
         self.content_image = self.prepare_image(content_image)
         self.content_map = np.zeros((1, 1)+self.content_image.shape[2:], dtype=np.float32)
-
-        self.content_loss = []
-        for layer in args.content_layers.split(','):
-            content_features = self.model.tensor_outputs['conv'+layer].eval({self.model.tensor_img: self.content_image})
-            content_loss = T.mean((self.model.tensor_outputs['conv'+layer] - content_features) ** 2.0)
-            self.content_loss.append(args.content_weight * content_loss)
 
     def prepare_style(self):
         style_image = scipy.ndimage.imread(args.style, mode='RGB')
@@ -135,9 +132,21 @@ class NeuralGenerator(object):
             l = self.model.network['nn'+layer]
             l.N = theano.shared(norm)
             l.W.set_value(patches)
-            
-            # TODO: How do we change convolution filters dynamically, too late after get_outputs?
-            assert l.num_filters == patches.shape[0], "Number of filters hard-coded wrong, try %i. [WIP]" % patches.shape[0]
+            l.num_filters = patches.shape[0]
+
+    def extract_patches(self, f, size=3, stride=1):
+        patches = theano.tensor.nnet.neighbours.images2neibs(f, (size, size), (stride, stride), mode='valid')
+        patches = patches.reshape((-1, patches.shape[0] // f.shape[1], size, size)).dimshuffle((1, 0, 2, 3))
+
+        norm = T.sqrt(T.sum(patches ** 2.0, axis=(1,2,3), keepdims=True))
+        return patches[:,:,::-1,::-1], norm
+
+    def prepare_optimization(self):
+        self.content_loss = []
+        for layer in args.content_layers.split(','):
+            content_features = self.model.tensor_outputs['conv'+layer].eval({self.model.tensor_img: self.content_image})
+            content_loss = T.mean((self.model.tensor_outputs['conv'+layer] - content_features) ** 2.0)
+            self.content_loss.append(args.content_weight * content_loss)
 
         def style_loss(l):
             layer = self.model.network['nn'+l]
@@ -150,14 +159,6 @@ class NeuralGenerator(object):
 
         self.style_loss = [args.style_weight * style_loss(l) for l in args.style_layers.split(',')]
 
-    def extract_patches(self, f, size=3, stride=1):
-        patches = theano.tensor.nnet.neighbours.images2neibs(f, (size, size), (stride, stride), mode='valid')
-        patches = patches.reshape((-1, patches.shape[0] // f.shape[1], size, size)).dimshuffle((1, 0, 2, 3))
-
-        norm = T.sqrt(T.sum(patches ** 2.0, axis=(1,2,3), keepdims=True))
-        return patches[:,:,::-1,::-1], norm
-
-    def prepare_optimization(self):
         variation_loss = args.smoothness * self.variation_loss(self.model.tensor_img)
         losses = self.content_loss + self.style_loss + [variation_loss]
         grad = T.grad(sum(losses), self.model.tensor_img)
@@ -177,7 +178,7 @@ class NeuralGenerator(object):
         print(self.iteration, 'losses', ' '.join(["{:8.3e}".format(l/1000) for l in losses]), 'gradients', np.min(grads), np.max(grads))
 
         self.iteration += 1
-        return loss, np.clip(grads, -1.0, +1.0).flatten().astype(np.float64)
+        return loss, np.array(grads).flatten().astype(np.float64)
 
     def run(self):
         # Xn = self.content_image[0] + self.model.pixel_mean

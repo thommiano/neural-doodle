@@ -3,6 +3,8 @@
 #
 
 import os
+import sys
+import bz2
 import pickle
 import argparse
 
@@ -100,7 +102,11 @@ class Model(object):
         self.network = net
 
     def load_data(self): 
-        data = pickle.load(open('vgg19_conv.pkl', 'rb'))
+        if not os.path.exists('vgg19_conv.pkl.bz2'):
+            print("""{}ERROR: Model file with pre-trained convolution layers not found. Download here:\nhttps://github.com/alexjc/neural-doodle/releases/download/v0.0/vgg19_conv.pkl.bz2{}\n""".format(ansi.RED, ansi.ENDC))
+            sys.exit(-1)
+
+        data = pickle.load(bz2.open('vgg19_conv.pkl.bz2', 'rb'))
         params = lasagne.layers.get_all_param_values(self.network['main'])
         lasagne.layers.set_all_param_values(self.network['main'], data[:len(params)])
 

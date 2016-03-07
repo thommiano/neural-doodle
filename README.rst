@@ -12,7 +12,7 @@ Neural Doodle
 Image Analogy
 -------------
 
-.. code: bash
+.. code:: bash
 
     # Generate a scene around a lake in the style of Renoir. 
     python3.4 doodle.py --output samples/Landscape.jpg --content-weight=0.0 --style samples/Renoir.jpg
@@ -23,7 +23,7 @@ Image Analogy
 Installation & Setup
 --------------------
 
-.. code: bash
+.. code:: bash
 
     python3 -m venv pyvenv --system-site-packages
     source pyvenv/bin/activate
@@ -35,11 +35,11 @@ Installation & Setup
 
 |Python Version| |License Type| |Project Stars|
 
-.. |Python Version| image:: http://alexjc.github.io/neural-doodle/badge_python.svg
+.. |Python Version| image:: http://aigamedev.github.io/scikit-neuralnetwork/badge_python.svg
     :target: https://www.python.org/
 
 .. |License Type| image:: https://img.shields.io/badge/license-New%20BSD-blue.svg
     :target: https://github.com/alexjc/neural-doodle/blob/master/LICENSE
 
-.. |Project Stars| image:: https://img.shields.io/github/stars/aigamedev/scikit-neuralnetwork.svg
-    :target: https://github.com/alexjc/neural-doodle/stargazers    
+.. |Project Stars| image:: https://img.shields.io/github/stars/alexjc/neural-doodle
+    :target: https://github.com/alexjc/neural-doodle/stargazers

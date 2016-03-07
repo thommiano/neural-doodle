@@ -20,7 +20,7 @@ parser.add_argument('--content',        required=True, type=str,        help='Co
 parser.add_argument('--content-weight', default=10.0, type=float,       help='Weight of content relative to style.')
 parser.add_argument('--content-layers', default='4_2', type=str,        help='The layer with which to match content.')
 parser.add_argument('--style',          required=True, type=str,        help='Style image path to extract patches.')
-parser.add_argument('--style-weight',   default=10.0, type=float,       help='Weight of style relative to content.')
+parser.add_argument('--style-weight',   default=50.0, type=float,       help='Weight of style relative to content.')
 parser.add_argument('--style-layers',   default='3_1,4_1', type=str,    help='The layers to match style patches.')
 parser.add_argument('--semantic-ext',   default='_sem.png', type=str,   help='File extension for the semantic maps.')
 parser.add_argument('--semantic-weight', default=50.0, type=float,      help='Global weight of semantics vs. features.')
@@ -30,7 +30,7 @@ parser.add_argument('--smoothness',     default=1E+0, type=float,       help='We
 parser.add_argument('--seed',           default='noise', type=str,      help='Seed image path, "noise" or "content".')
 parser.add_argument('--iterations',     default=100, type=int,          help='Number of iterations to run each resolution.')
 parser.add_argument('--device',         default='gpu0', type=str,       help='Index of the GPU number to use, for theano.')
-parser.add_argument('--print-every',    default=1, type=int,           help='How often to log statistics to stdout.')
+parser.add_argument('--print-every',    default=1, type=int,            help='How often to log statistics to stdout.')
 parser.add_argument('--save-every',     default=0, type=int,            help='How frequently to save PNG into `frames`.')
 args = parser.parse_args()
 
@@ -125,18 +125,23 @@ class NeuralGenerator(object):
         self.model = Model()
         
         self.content_image_original = scipy.ndimage.imread(args.content, mode='RGB')
+        self.content_map_original = scipy.ndimage.imread(os.path.splitext(args.content)[0]+args.semantic_ext, mode='RGB')
         self.style_image_original = scipy.ndimage.imread(args.style, mode='RGB')
+        self.style_map_original = scipy.ndimage.imread(os.path.splitext(args.style)[0]+args.semantic_ext, mode='RGB')
 
     def prepare_content(self, scale=1.0):
         content_image = skimage.transform.rescale(self.content_image_original, scale) * 255.0
         self.content_image = self.prepare_image(content_image)
-        self.content_map = np.zeros((1, 1)+self.content_image.shape[2:], dtype=np.float32)
+
+        content_map = skimage.transform.rescale(self.content_map_original * args.semantic_weight, scale) * 255.0
+        self.content_map = content_map.transpose((2, 0, 1))[np.newaxis].astype(np.float32)
 
     def prepare_style(self, scale=1.0):
         style_image = skimage.transform.rescale(self.style_image_original, scale) * 255.0
-
         self.style_image = self.prepare_image(style_image)
-        self.style_map = np.zeros((1, 1)+self.content_image.shape[2:], dtype=np.float32)
+
+        style_map = skimage.transform.rescale(self.style_map_original * args.semantic_weight, scale) * 255.0
+        self.style_map = style_map.transpose((2, 0, 1))[np.newaxis].astype(np.float32)
 
         for layer in args.style_layers.split(','):
             extractor = theano.function([self.model.tensor_img, self.model.tensor_map],
@@ -159,10 +164,11 @@ class NeuralGenerator(object):
 
     def prepare_optimization(self):
         self.content_loss = []
-        for layer in args.content_layers.split(','):
-            content_features = self.model.tensor_outputs['conv'+layer].eval({self.model.tensor_img: self.content_image})
-            content_loss = T.mean((self.model.tensor_outputs['conv'+layer] - content_features) ** 2.0)
-            self.content_loss.append(('content', layer, args.content_weight * content_loss))
+        if args.content_weight > 0.0:
+            for layer in args.content_layers.split(','):
+                content_features = self.model.tensor_outputs['conv'+layer].eval({self.model.tensor_img: self.content_image})
+                content_loss = T.mean((self.model.tensor_outputs['conv'+layer] - content_features) ** 2.0)
+                self.content_loss.append(('content', layer, args.content_weight * content_loss))
 
         def style_loss(l):
             layer = self.model.network['nn'+l]
@@ -171,7 +177,7 @@ class NeuralGenerator(object):
             dist = dist.reshape((dist.shape[1], -1)) / norm.reshape((1,-1)) / layer.N.reshape((-1,1))
 
             best = dist.argmax(axis=0)
-            return T.mean((patches - layer.W[best]) ** 2.0)
+            return T.mean((patches[:,:-3] - layer.W[best,:-3]) ** 2.0)
 
         self.style_loss = [('style', l, args.style_weight * style_loss(l)) for l in args.style_layers.split(',')]
 
@@ -192,21 +198,21 @@ class NeuralGenerator(object):
         scipy.misc.toimage(self.finalize_image(Xn), cmin=0, cmax=255).save('frames/%04d.png'%self.frame)
 
         if self.frame % args.print_every == 0:
-            print('{}   {}error{} {:8.2e} '.format(self.frame, ansi.BOLD, ansi.ENDC, loss), end='')
+            print('{:< 3}   {}error{} {:8.2e} '.format(self.frame, ansi.BOLD, ansi.ENDC, loss), end='')
             category = ''
             for v, l in zip(losses, self.losses):
                 if l[0] == 'smooth':
                     continue
 
                 if l[0] != category:
-                    print('   {}{}{}'.format(ansi.BOLD, l[0], ansi.ENDC), end='')
+                    print('  {}{}{}'.format(ansi.BOLD, l[0], ansi.ENDC), end='')
                     category = l[0]
                 print(' {}{}{} {:8.2e} '.format(ansi.BOLD, l[1], ansi.ENDC, v / 1000.0), end='')
                 
             adjust = np.abs(grads).max()
             self.error = self.error * 0.9 + 0.1 * adjust
             quality = 100.0 - 100.0 * np.sqrt(self.error / 255.0)
-            print('    {}quality{} {:3.1f}% '.format(ansi.BOLD, ansi.ENDC, quality, flush=True))
+            print('  {}quality{} {:3.1f}% '.format(ansi.BOLD, ansi.ENDC, quality, flush=True))
 
         self.frame += 1
         return loss, np.array(grads).flatten().astype(np.float64)

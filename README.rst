@@ -14,11 +14,11 @@ Image Analogy
 
 .. code:: bash
 
+    # Synthesize a coastline in the style of Monet. Uses "*_sem.png" files for both images.
+    python3 doodle.py --style samples/Monet.jpg --output samples/Coastline.jpg
+
     # Generate a scene around a lake in the style of Renoir. 
-    python3.4 doodle.py --output samples/Landscape.jpg --content-weight=0.0 --style samples/Renoir.jpg
-    
-    # Synthesize a coastline in the style of Monet. 
-    python3.4 doodle.py --output samples/Coastline.jpg --content-weight=0.0 --style samples/Monet.jpg
+    python3 doodle.py --style samples/Renoir.jpg --output samples/Landscape.jpg 
 
 Installation & Setup
 --------------------

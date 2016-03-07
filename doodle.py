@@ -16,21 +16,21 @@ import skimage.transform
 parser = argparse.ArgumentParser(description='Generate a new image by applying style onto a content image.',
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-parser.add_argument('--content',        required=True, type=str,        help='Content image path as optimization target.')
+parser.add_argument('--content',        default=None, type=str,         help='Content image path as optimization target.')
 parser.add_argument('--content-weight', default=10.0, type=float,       help='Weight of content relative to style.')
 parser.add_argument('--content-layers', default='4_2', type=str,        help='The layer with which to match content.')
 parser.add_argument('--style',          required=True, type=str,        help='Style image path to extract patches.')
 parser.add_argument('--style-weight',   default=50.0, type=float,       help='Weight of style relative to content.')
 parser.add_argument('--style-layers',   default='3_1,4_1', type=str,    help='The layers to match style patches.')
 parser.add_argument('--semantic-ext',   default='_sem.png', type=str,   help='File extension for the semantic maps.')
-parser.add_argument('--semantic-weight', default=50.0, type=float,      help='Global weight of semantics vs. features.')
+parser.add_argument('--semantic-weight', default=1.0, type=float,       help='Global weight of semantics vs. features.')
 parser.add_argument('--output',         default='output.png', type=str, help='Output image path to save once done.')
 parser.add_argument('--resolutions',    default=3, type=int,            help='Number of image scales to process.')
 parser.add_argument('--smoothness',     default=1E+0, type=float,       help='Weight of image smoothing scheme.')
 parser.add_argument('--seed',           default='noise', type=str,      help='Seed image path, "noise" or "content".')
-parser.add_argument('--iterations',     default=100, type=int,          help='Number of iterations to run each resolution.')
-parser.add_argument('--device',         default='gpu0', type=str,       help='Index of the GPU number to use, for theano.')
-parser.add_argument('--print-every',    default=1, type=int,            help='How often to log statistics to stdout.')
+parser.add_argument('--iterations',     default=50, type=int,           help='Number of iterations to run each resolution.')
+parser.add_argument('--device',         default='cpu', type=str,        help='Index of the GPU number to use, for theano.')
+parser.add_argument('--print-every',    default=10, type=int,           help='How often to log statistics to stdout.')
 parser.add_argument('--save-every',     default=0, type=int,            help='How frequently to save PNG into `frames`.')
 args = parser.parse_args()
 
@@ -123,9 +123,24 @@ class NeuralGenerator(object):
 
     def __init__(self):
         self.model = Model()
-        
-        self.content_image_original = scipy.ndimage.imread(args.content, mode='RGB')
-        self.content_map_original = scipy.ndimage.imread(os.path.splitext(args.content)[0]+args.semantic_ext, mode='RGB')
+
+        filename_image = args.content or args.output
+        filename_map = os.path.splitext(filename_image)[0]+args.semantic_ext
+
+        if os.path.exists(filename_image):
+            self.content_image_original = scipy.ndimage.imread(filename_image, mode='RGB')
+        else:
+            self.content_image_original = None
+            args.content_weight = 0.0
+
+        if os.path.exists(filename_map):
+            self.content_map_original = scipy.ndimage.imread(filename_map, mode='RGB')
+            if self.content_image_original is None:
+                self.content_image_original = np.zeros(self.content_map_original.shape[:2]+(3,))
+        else:
+            self.content_map_original = np.zeros(self.content_image_original.shape[:2]+(1,))
+            args.semantic_weight = 0.0
+
         self.style_image_original = scipy.ndimage.imread(args.style, mode='RGB')
         self.style_map_original = scipy.ndimage.imread(os.path.splitext(args.style)[0]+args.semantic_ext, mode='RGB')
 
@@ -169,6 +184,7 @@ class NeuralGenerator(object):
                 content_features = self.model.tensor_outputs['conv'+layer].eval({self.model.tensor_img: self.content_image})
                 content_loss = T.mean((self.model.tensor_outputs['conv'+layer] - content_features) ** 2.0)
                 self.content_loss.append(('content', layer, args.content_weight * content_loss))
+                print('  - Content layer conv{}: {} features in {:,}kb.'.format(layer, content_features.shape[0], content_features.size//1000))
 
         def style_loss(l):
             layer = self.model.network['nn'+l]
@@ -195,10 +211,14 @@ class NeuralGenerator(object):
         grads, *losses = self.compute_grad_and_losses(current_img, self.content_map)
         loss = sum(losses)
 
-        scipy.misc.toimage(self.finalize_image(Xn), cmin=0, cmax=255).save('frames/%04d.png'%self.frame)
+        if args.save_every and self.frame % args.save_every == 0:
+            scipy.misc.toimage(self.finalize_image(Xn), cmin=0, cmax=255).save('frames/%04d.png'%self.frame)
 
-        if self.frame % args.print_every == 0:
-            print('{:< 3}   {}error{} {:8.2e} '.format(self.frame, ansi.BOLD, ansi.ENDC, loss), end='')
+        # Use gradients as an estimate for overall quality.
+        self.error = self.error * 0.9 + 0.1 * np.abs(grads).max()
+
+        if args.print_every and self.frame % args.print_every == 0:
+            print('{:>3}   {}error{} {:8.2e} '.format(self.frame, ansi.BOLD, ansi.ENDC, loss / 1000.0), end='')
             category = ''
             for v, l in zip(losses, self.losses):
                 if l[0] == 'smooth':
@@ -208,9 +228,7 @@ class NeuralGenerator(object):
                     print('  {}{}{}'.format(ansi.BOLD, l[0], ansi.ENDC), end='')
                     category = l[0]
                 print(' {}{}{} {:8.2e} '.format(ansi.BOLD, l[1], ansi.ENDC, v / 1000.0), end='')
-                
-            adjust = np.abs(grads).max()
-            self.error = self.error * 0.9 + 0.1 * adjust
+
             quality = 100.0 - 100.0 * np.sqrt(self.error / 255.0)
             print('  {}quality{} {:3.1f}% '.format(ansi.BOLD, ansi.ENDC, quality, flush=True))
 
@@ -219,9 +237,9 @@ class NeuralGenerator(object):
 
     def run(self):
         self.frame = 0
-        self.error = 255.0
 
         for i in range(args.resolutions):
+            self.error = 255.0
             scale = 1.0 / 2.0 ** (args.resolutions - 1 - i)
 
             shape = self.content_image_original.shape
@@ -240,7 +258,7 @@ class NeuralGenerator(object):
             if args.seed == 'content':
                 Xn = self.content_image[0] + self.model.pixel_mean
             if args.seed == 'noise':
-                Xn = np.random.uniform(64, 192, shape + (3,)).astype(np.float32)
+                Xn = np.random.uniform(32, 224, shape + (3,)).astype(np.float32)
             if args.seed == 'previous':
                 Xn = scipy.misc.imresize(Xn[0], shape)
                 Xn = Xn.transpose((2, 0, 1))[np.newaxis]
@@ -253,7 +271,7 @@ class NeuralGenerator(object):
                                 Xn.astype(np.float64).flatten(),
                                 bounds=data_bounds,
                                 factr=0.0, pgtol=0.0,            # Disable automatic termination by setting low threshold.
-                                m=16,                            # Maximum correlations kept in memory by algorithm. 
+                                m=4,                             # Maximum correlations kept in memory by algorithm. 
                                 maxfun=args.iterations-1,        # Limit number of calls to evaluate().
                                 iprint=-1)                       # Handle our own logging of information.
 

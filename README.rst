@@ -77,5 +77,5 @@ If you have any comparisons or insights, be sure to let us know!
 .. |License Type| image:: https://img.shields.io/badge/license-New%20BSD-blue.svg
     :target: https://github.com/alexjc/neural-doodle/blob/master/LICENSE
 
-.. |Project Stars| image:: https/img.shields.io/github/stars/alexjc/neural-doodle.svg?style=flat
+.. |Project Stars| image:: https://img.shields.io/github/stars/alexjc/neural-doodle.svg?style=flat
     :target: https://github.com/alexjc/neural-doodle/stargazers

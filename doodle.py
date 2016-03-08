@@ -116,7 +116,8 @@ class Model(object):
         """
 
         if not os.path.exists('vgg19_conv.pkl.bz2'):
-            print("""{}ERROR: Model file with pre-trained convolution layers not found. Download here:{}\nhttps://github.com/alexjc/neural-doodle/releases/download/v0.0/vgg19_conv.pkl.bz2{}\n"""\
+            print("{}ERROR: Model file with pre-trained convolution layers not found. Download here:{}\n"\
+                  "https://github.com/alexjc/neural-doodle/releases/download/v0.0/vgg19_conv.pkl.bz2{}\n"\
             .format(ansi.RED_B, ansi.RED, ansi.ENDC))
             sys.exit(-1)
 
@@ -169,27 +170,28 @@ class NeuralGenerator(object):
         if args.output is not None and os.path.isfile(args.output):
             os.remove(args.output)
 
-        filename_image = args.content or args.output
-        filename_map = os.path.splitext(filename_image)[0]+args.semantic_ext
+        self.style_image_original, self.style_map_original = self.load_images(args.style)
+        self.content_image_original, self.content_map_original = self.load_images(args.content or args.output)
 
-        if os.path.exists(filename_image):
-            self.content_image_original = scipy.ndimage.imread(filename_image, mode='RGB')
-        else:
-            self.content_image_original = None
+        if self.content_map_original is None:
+            self.content_map_original = np.zeros(self.content_image_original.shape[:2]+(1,))
+            self.semantic_weight = 0.0
+
+        if self.content_image_original is None:
+            self.content_image_original = np.zeros(self.content_map_original.shape[:2]+(3,))
             args.content_weight = 0.0
 
-        if os.path.exists(filename_map):
-            self.content_map_original = scipy.ndimage.imread(filename_map, mode='RGB')
-            if self.content_image_original is None:
-                self.content_image_original = np.zeros(self.content_map_original.shape[:2]+(3,))
-        else:
-            self.content_map_original = np.zeros(self.content_image_original.shape[:2]+(1,))
-            args.semantic_weight = 0.0
+        assert self.content_map_original.shape[2] == self.style_map_original.shape[2],\
+            "Mismatch in number of channels  for style and content semantic map.s"
 
-        # TODO: Refactor this.
-        self.style_image_original = scipy.ndimage.imread(args.style, mode='RGB')
-        self.style_map_original = scipy.ndimage.imread(os.path.splitext(args.style)[0]+args.semantic_ext, mode='RGB')
-
+    def load_images(self, filename):
+        """If the image and mask files exist, load them. Otherwise they'll be set to default values later.
+        """
+        basename, _ = os.path.splitext(filename)
+        mapname = basename + args.semantic_ext
+        img = scipy.ndimage.imread(filename, mode='RGB') if os.path.exists(filename) else None
+        mask = scipy.ndimage.imread(mapname) if os.path.exists(mapname) else None
+        return img, mask
 
     #------------------------------------------------------------------------------------------------------------------
     # Initialization & Setup

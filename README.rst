@@ -45,6 +45,8 @@ installed system-wide. Afterwards, you can run the following commands from your 
     # Setup the required dependencies simply using the PIP module.
     python3 -m pip install -r https://raw.githubusercontent.com/alexjc/neural-doodle/master/requirements.txt
 
+.
+
 .. image:: docs/Coastline_example.png
 
 Frequent Questions

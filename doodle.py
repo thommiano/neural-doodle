@@ -124,6 +124,9 @@ class NeuralGenerator(object):
     def __init__(self):
         self.model = Model()
 
+        if args.output is not None and os.path.isfile(args.output):
+            os.remove(args.output)
+
         filename_image = args.content or args.output
         filename_map = os.path.splitext(filename_image)[0]+args.semantic_ext
 

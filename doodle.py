@@ -1,5 +1,9 @@
 #
 # Copyright (c) 2016, Alex J. Champandard.
+# 
+# Research and development sponsored by the nucl.ai Conference!
+#   http://events.nucl.ai/
+#   July 18-20, 2016 in Vienna/Austria.
 #
 
 import os
@@ -7,10 +11,6 @@ import sys
 import bz2
 import pickle
 import argparse
-
-import numpy as np
-import scipy.optimize
-import skimage.transform
 
 
 # Configure all options first so we can custom load other libraries (Theano) based on device specified by user.
@@ -37,19 +37,9 @@ add_arg('--save-every',     default=0, type=int,            help='How frequently
 args = parser.parse_args()
 
 
-# Load the underlying deep learning libraries based on the device specified.  If you specify THEANO_FLAGS manually,
-# the code assumes you know what you are doing and they are not overriden!
-os.environ.setdefault('THEANO_FLAGS', 'device=%s,floatX=float32,print_active_device=False' % (args.device))
+#----------------------------------------------------------------------------------------------------------------------
 
-import theano
-import theano.tensor as T
-import theano.tensor.nnet.neighbours
-
-import lasagne
-from lasagne.layers import Conv2DLayer as ConvLayer, Pool2DLayer as PoolLayer
-from lasagne.layers import InputLayer, ConcatLayer
-
-
+# Color coded output helps visualize the information a little better, plus looks cool!
 class ansi:
     BOLD = '\033[1;97m'
     WHITE = '\033[0;97m'
@@ -58,9 +48,36 @@ class ansi:
     RED_B = '\033[1;31m'
     BLUE = '\033[0;94m'
     BLUE_B = '\033[1;94m'
+    CYAN = '\033[0;36m'
+    CYAN_B = '\033[1;36m'
     ENDC = '\033[0m'
 
+print('{}Neural Doodle for semantic style transfer.{}'.format(ansi.CYAN_B, ansi.ENDC))
 
+
+# Load the underlying deep learning libraries based on the device specified.  If you specify THEANO_FLAGS manually,
+# the code assumes you know what you are doing and they are not overriden!
+os.environ.setdefault('THEANO_FLAGS', 'device=%s,floatX=float32,print_active_device=False' % (args.device))
+
+# Scientific Libraries
+import numpy as np
+import scipy.optimize
+import skimage.transform
+
+# Numeric Computing (GPU)
+import theano
+import theano.tensor as T
+import theano.tensor.nnet.neighbours
+
+# Deep Learning Framework
+import lasagne
+from lasagne.layers import Conv2DLayer as ConvLayer, Pool2DLayer as PoolLayer
+from lasagne.layers import InputLayer, ConcatLayer
+
+
+#----------------------------------------------------------------------------------------------------------------------
+# Convolutional Neural Network
+#----------------------------------------------------------------------------------------------------------------------
 class Model(object):
     """Store all the data related to the neural network (aka. "model"). This is currently based on VGG19.
     """
@@ -156,6 +173,9 @@ class Model(object):
         return np.clip(image, 0, 255).astype('uint8')
 
 
+#----------------------------------------------------------------------------------------------------------------------
+# Semantic Style Transfer
+#----------------------------------------------------------------------------------------------------------------------
 class NeuralGenerator(object):
     """This is the main part of the application that generates an image using optimization and LBFGS.
     The images will be processed at increasing resolutions in the run() method.
@@ -170,37 +190,43 @@ class NeuralGenerator(object):
         if args.output is not None and os.path.isfile(args.output):
             os.remove(args.output)
 
-        self.style_image_original, self.style_map_original = self.load_images(args.style)
-        self.content_image_original, self.content_map_original = self.load_images(args.content or args.output)
+        print(ansi.CYAN, end='')
+        target = args.content or args.output
+        self.content_img_original, self.content_map_original = self.load_images('content', target)
+        self.style_img_original, self.style_map_original = self.load_images('style', args.style)
+        print(ansi.ENDC, end='')
 
         if self.content_map_original is None:
-            self.content_map_original = np.zeros(self.content_image_original.shape[:2]+(1,))
+            self.content_map_original = np.zeros(self.content_img_original.shape[:2]+(1,))
             self.semantic_weight = 0.0
 
-        if self.content_image_original is None:
-            self.content_image_original = np.zeros(self.content_map_original.shape[:2]+(3,))
+        if self.content_img_original is None:
+            self.content_img_original = np.zeros(self.content_map_original.shape[:2]+(3,))
             args.content_weight = 0.0
 
         assert self.content_map_original.shape[2] == self.style_map_original.shape[2],\
             "Mismatch in number of channels  for style and content semantic map.s"
 
-    def load_images(self, filename):
-        """If the image and mask files exist, load them. Otherwise they'll be set to default values later.
+    def load_images(self, name, filename):
+        """If the image and map files exist, load them. Otherwise they'll be set to default values later.
         """
         basename, _ = os.path.splitext(filename)
         mapname = basename + args.semantic_ext
         img = scipy.ndimage.imread(filename, mode='RGB') if os.path.exists(filename) else None
-        mask = scipy.ndimage.imread(mapname) if os.path.exists(mapname) else None
-        return img, mask
+        map = scipy.ndimage.imread(mapname) if os.path.exists(mapname) else None
+        
+        if img is not None: print('  - Loading {} image data from {}.'.format(name, filename))
+        if map is not None: print('  - Loading {} semantic map from {}.'.format(name, mapname))
+        return img, map
 
     #------------------------------------------------------------------------------------------------------------------
     # Initialization & Setup
     #------------------------------------------------------------------------------------------------------------------
 
     def prepare_content(self, scale=1.0):
-        """Called each phase of the optimization, rescale the original content image and its mask to use as inputs.
+        """Called each phase of the optimization, rescale the original content image and its map to use as inputs.
         """
-        content_image = skimage.transform.rescale(self.content_image_original, scale) * 255.0
+        content_image = skimage.transform.rescale(self.content_img_original, scale) * 255.0
         self.content_image = self.model.prepare_image(content_image)
 
         content_map = skimage.transform.rescale(self.content_map_original * args.semantic_weight, scale) * 255.0
@@ -210,7 +236,7 @@ class NeuralGenerator(object):
         """Called each phase of the optimization, process the style image according to the scale, then run it
         through the model to extract intermediate outputs (e.g. sem4_1) and turn them into patches.
         """
-        style_image = skimage.transform.rescale(self.style_image_original, scale) * 255.0
+        style_image = skimage.transform.rescale(self.style_img_original, scale) * 255.0
         self.style_image = self.model.prepare_image(style_image)
 
         style_map = skimage.transform.rescale(self.style_map_original * args.semantic_weight, scale) * 255.0
@@ -374,7 +400,7 @@ class NeuralGenerator(object):
             self.error = 255.0
             scale = 1.0 / 2.0 ** (args.resolutions - 1 - i)
 
-            shape = self.content_image_original.shape
+            shape = self.content_img_original.shape
             print('\n{}Phase #{}: resolution {}x{}  scale {}{}'\
                     .format(ansi.BLUE_B, i, int(shape[1]*scale), int(shape[0]*scale), scale, ansi.BLUE))
 

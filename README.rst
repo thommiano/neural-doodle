@@ -1,9 +1,9 @@
 Neural Doodle
 =============
 
-Do you want to use a deep neural network to borrow the skills of other artists to turn your two-bit doodles into fine artworks? Look no further! This project is an implementation of `Semantic Style Transfer <http://arxiv.org/abs/1603.01768>`_ (Champandard, 2016), based on the `Neural Patches <http://arxiv.org/abs/1601.04589>`_ algorithm (Li 2016).
+Do you want to use a deep neural network to borrow the skills of other artists and turn your two-bit doodles into fine artworks? Look no further! This project is an implementation of `Semantic Style Transfer <http://arxiv.org/abs/1603.01768>`_ (Champandard, 2016), based on the `Neural Patches <http://arxiv.org/abs/1601.04589>`_ algorithm (Li 2016).
 
-Once the project is setup, you can specify two or three images as inputs: the original style, its annotated-version, your own doodle, and optionally a target image. The algorithm will then extract annotated patches from the style image, and incrementally transfer them over to the target image based on how closery they match.
+Using the ``doodle.py`` script, you can generate an image by using three images as inputs: the original style, its annotated-version, your own doodle, and optionally a target image. The algorithm will then extract annotated patches from the style image, and incrementally transfer them over to the target image based on how closery they match.
 
 **NOTE**: This project is possible thanks to the `nucl.ai Conference <http://nucl.ai/>`_ on **July 18-20**. Join us in **Vienna**!
 

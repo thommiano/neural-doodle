@@ -43,7 +43,7 @@ installed system-wide. Afterwards, you can run the following commands from your 
     source pyvenv/bin/activate
     
     # Setup the required dependencies simply using the PIP module.
-    python3 -m pip install -r https://raw.githubusercontent.com/alexjc/neural-doodle/master/requirements.txt
+    python3 -m pip install --ignore-installed -r requirements.txt
 
 .
 
@@ -51,6 +51,14 @@ installed system-wide. Afterwards, you can run the following commands from your 
 
 Frequent Questions
 ------------------
+
+Q: It's running out of GPU Ram, throwing ``MemoryError``. Help!
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You'll need a good NVIDIA card with CUDA to run this software on GPU, ideally 2Gb / 4Gb or better still, 8Gb to 12Gb for larger resolutions.  The code does work on CPU by default, so use that as fallback since you likely have more system RAM!
+
+To improve memory consumption, you can also install NVIDIA's ``cudnn`` library version 3.0 or 4.0. This allows convolutional neural networks to run faster and save space in GPU RAM.
+
 
 Q: How is semantic style transfer different to neural analogies?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

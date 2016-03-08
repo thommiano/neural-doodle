@@ -205,7 +205,7 @@ class NeuralGenerator(object):
             args.content_weight = 0.0
 
         assert self.content_map_original.shape[2] == self.style_map_original.shape[2],\
-            "Mismatch in number of channels  for style and content semantic map.s"
+            "Mismatch in number of channels  for style and content semantic map."
 
     def load_images(self, name, filename):
         """If the image and map files exist, load them. Otherwise they'll be set to default values later.

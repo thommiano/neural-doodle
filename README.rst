@@ -16,15 +16,15 @@ The ``doodle.py`` script generates an image by using three or four images as inp
 Image Analogy
 -------------
 
-The algorithm is built for style transfer, but can also generate image analogies that we call a ``#NeuralDoodle``.  Example files are included in the ``#/samples/`` folder. Execute with these commands:
+The algorithm is built for style transfer, but can also generate image analogies that we call a ``#NeuralDoodle``; use the hashtag if you post your images!  Example files are included in the ``#/samples/`` folder. Execute with these commands:
 
 .. code:: bash
 
     # Synthesize a coastline as if painted by Monet. This uses "*_sem.png" masks for both images.
-    python3 doodle.py --device=cpu --style samples/Monet.jpg --output samples/Coastline.jpg
+    python3 doodle.py --device=cpu --style samples/Monet.jpg --output samples/Coastline.png
 
     # Generate a scene around a lake in the style of a Renoir painting.  
-    python3 doodle.py --device=gpu0 --style samples/Renoir.jpg --output samples/Landscape.jpg 
+    python3 doodle.py --device=gpu0 --style samples/Renoir.jpg --output samples/Landscape.png 
 
 Note the ``--device`` argument that lets you specify which GPU or CPU to use. The default is to use ``cpu``, if you have NVIDIA card setup with CUDA/CUDNN already try ``gpu0``.
 

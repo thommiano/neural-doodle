@@ -28,7 +28,7 @@ parser.add_argument('--output',         default='output.png', type=str, help='Ou
 parser.add_argument('--resolutions',    default=3, type=int,            help='Number of image scales to process.')
 parser.add_argument('--smoothness',     default=1E+0, type=float,       help='Weight of image smoothing scheme.')
 parser.add_argument('--seed',           default='noise', type=str,      help='Seed image path, "noise" or "content".')
-parser.add_argument('--iterations',     default=50, type=int,           help='Number of iterations to run each resolution.')
+parser.add_argument('--iterations',     default=100, type=int,          help='Number of iterations to run each resolution.')
 parser.add_argument('--device',         default='cpu', type=str,        help='Index of the GPU number to use, for theano.')
 parser.add_argument('--print-every',    default=10, type=int,           help='How often to log statistics to stdout.')
 parser.add_argument('--save-every',     default=0, type=int,            help='How frequently to save PNG into `frames`.')

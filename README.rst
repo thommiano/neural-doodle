@@ -47,17 +47,17 @@ installed system-wide. Afterwards, you can run the following commands from your 
 
 .. image:: docs/Coastline_example.png
 
-Frequest Questions
+Frequent Questions
 ------------------
 
 Q: How is semantic style transfer different to neural analogies?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-It's still very early too say definitively, both approaches were discovered independently by `@alexjc <https://twitter.com/alexjc>`_ and `@awentzonline <https://twitter.com/awentzonline>`_ (respectively). Here are some early impressions:
+It's still too early to say definitively, both approaches were discovered independently by `@alexjc <https://twitter.com/alexjc>`_ and `@awentzonline <https://twitter.com/awentzonline>`_ (respectively). Here are some early impressions:
 
-1. One algorithm is style transfer that happens to do analogies, and the other is analogies that happens to do style transfer now. Adam extended his implementation to use a content loss after the semantic style transfer paper was published, so now they're even more similar under the hood!
+1. One algorithm is style transfer that happens to do analogies, and the other is analogies that happens to do style transfer now. Adam extended his implementation to use a content loss after the `Semantic Style Transfer <http://arxiv.org/abs/1603.01768>`_ paper was published, so now they're even more similar under the hood!
 
-2. Both use a `patch-based approach <http://arxiv.org/abs/1601.04589>`_ (Li, 2016) but semantic style transfer imposes a "prior" on the patch-selection process and neural analogies has an additional prior on the convolution activations.  The outputs for both algorithms are a little different, it's not yet clear where each one is best.
+2. Both use a `patch-based approach <http://arxiv.org/abs/1601.04589>`_ (Li, 2016) but semantic style transfer imposes a "prior" via the patch-selection process and neural analogies has an additional prior on the convolution activations.  The outputs for both algorithms are a little different, it's not yet clear where each one is best.
 
 3. Semantic style transfer is simpler, it has fewer loss components.  This means somewhat less code to write and there are **fewer parameters involved** (not necessarily positive or negative).  Neural analogies is a little more complex, with as many parameters as the combination of two algorithms.
 
@@ -77,5 +77,5 @@ If you have any comparisons or insights, be sure to let us know!
 .. |License Type| image:: https://img.shields.io/badge/license-New%20BSD-blue.svg
     :target: https://github.com/alexjc/neural-doodle/blob/master/LICENSE
 
-.. |Project Stars| image:: https://img.shields.io/github/stars/alexjc/neural-doodle
+.. |Project Stars| image:: https/img.shields.io/github/stars/alexjc/neural-doodle.svg?style=flat
     :target: https://github.com/alexjc/neural-doodle/stargazers

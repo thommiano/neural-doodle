@@ -1,7 +1,9 @@
 Neural Doodle
 =============
 
-A minimalistic implementation of Semantic Style Transfer (Champandard, 2016), based on the Neural Patches algorithm (Li 2016).
+Do you want to borrow the skills of other artists to turn your two-bit doodles into fine artworks? Look no further! This project is an implementation of `Semantic Style Transfer <http://arxiv.org/abs/1603.01768>`_ (Champandard, 2016), based on the `Neural Patches <http://arxiv.org/abs/1601.04589>`_ algorithm (Li 2016).
+
+**NOTE**: This project is possible thanks to the `nucl.ai Conference <http://nucl.ai/>`_ on **July 18-20**. Join us in **Vienna**!
 
 |Python Version| |License Type| |Project Stars|
 
@@ -12,21 +14,22 @@ A minimalistic implementation of Semantic Style Transfer (Champandard, 2016), ba
 Image Analogy
 -------------
 
-The algorithm is built for style transfer, but it can also handle making image analogies.  Files are
-included in the `#/samples/` folder. Execute with these commands:
+The algorithm is built for style transfer, but can also generate image analogies that we call a ``#NeuralDoodle``.  Example files are included in the ``#/samples/`` folder. Execute with these commands:
 
 .. code:: bash
 
-    # Synthesize a coastline in the style of Monet. Uses "*_sem.png" files for both images.
-    python3 doodle.py --style samples/Monet.jpg --output samples/Coastline.jpg
+    # Synthesize a coastline as if painted by Monet. This uses "*_sem.png" masks for both images.
+    python3 doodle.py --device=cpu --style samples/Monet.jpg --output samples/Coastline.jpg
 
-    # Generate a scene around a lake in the style of Renoir. 
-    python3 doodle.py --style samples/Renoir.jpg --output samples/Landscape.jpg 
+    # Generate a scene around a lake in the style of a Renoir painting.  
+    python3 doodle.py --device=gpu0 --style samples/Renoir.jpg --output samples/Landscape.jpg 
+
+Note the ``--device`` argument that lets you specify which GPU or CPU to use. The default is to use ``cpu``, if you have NVIDIA card setup with CUDA/CUDNN already try ``gpu0``.
 
 Installation & Setup
 --------------------
 
-This project requires Python 3.x. You'll also need `numpy` and `scipy` (numerical computing libraries)
+This project requires Python 3.x. You'll also need ``numpy`` and ``scipy`` (numerical computing libraries)
 installed system-wide. Afterwards, you can run the following commands from your terminal:
 
 .. code:: bash
@@ -45,10 +48,10 @@ installed system-wide. Afterwards, you can run the following commands from your 
 Frequest Questions
 ------------------
 
-Q: How is semantic style transfer different than neural image analogies?
+Q: How is semantic style transfer different to neural analogies?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-It's still very early too say definitively, both approaches were discovered independently at the same time by @alexjc and @awentzonline (respectively). Here are our early impressions:
+It's still very early too say definitively, both approaches were discovered independently at the same time by @alexjc and @awentzonline (respectively). Here are some early impressions:
 
 1. One algorithm is style transfer that happens to do analogies, and the other is analogies that happens to do style transfer now. Adam extended his implementation to use a content loss after the semantic style transfer paper was published, so now they're very similar!
 
@@ -58,7 +61,9 @@ It's still very early too say definitively, both approaches were discovered inde
 
 4. Neural analogies is designed to work with images, and can only support the RGB format for its masks. Semantic style transfer was designed to integrate with other neural networks (for pixel labeling and semantic segmentation), and can use any format for its maps, including RGBA or many channels per label masks.
 
-5. Semantic style transfer is about 25% faster and uses less memory too.  For neural analogies, the extra computation is effectively the analogy prior—which could improve the quality of the results in theory. In practice, it's hard to tell—let us know what you find!
+5. Semantic style transfer is about 25% faster and uses less memory too.  For neural analogies, the extra computation is effectively the analogy prior—which could improve the quality of the results in theory. In practice, it's hard to tell at this stage.
+
+If you have any comparisons or insightns, be sure to let us know!
 
 ----
 

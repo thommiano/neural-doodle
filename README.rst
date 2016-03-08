@@ -1,7 +1,7 @@
 Neural Doodle
 =============
 
-
+A minimalistic implementation of Semantic Style Transfer.
 
 |Python Version| |License Type| |Project Stars|
 
@@ -11,6 +11,9 @@ Neural Doodle
 
 Image Analogy
 -------------
+
+The algorithm is built for style transfer, but it can also handle making image analogies.  Files are
+included in the `#/samples/` folder. Execute with these commands:
 
 .. code:: bash
 
@@ -23,10 +26,18 @@ Image Analogy
 Installation & Setup
 --------------------
 
+This project requires Python 3.x. You'll also need `numpy` and `scipy` (numerical computing libraries)
+installed system-wide. Afterwards, you can run the following commands from your terminal:
+
 .. code:: bash
 
+    # Create a local environment for Python 3.x to install dependencies here.
     python3 -m venv pyvenv --system-site-packages
+    
+    # If you're using bash, make this the active version of Python.
     source pyvenv/bin/activate
+    
+    # Setup the required dependencies simply using the PIP module.
     python3 -m pip install -r https://raw.githubusercontent.com/alexjc/neural-doodle/master/requirements.txt
 
 .. image:: docs/Coastline.png

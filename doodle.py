@@ -44,6 +44,7 @@ class ansi:
     BOLD = '\033[1;97m'
     WHITE = '\033[0;97m'
     YELLOW = '\033[0;33m'
+    YELLOW_B = '\033[0;33m'
     RED = '\033[0;31m'
     RED_B = '\033[1;31m'
     BLUE = '\033[0;94m'
@@ -195,6 +196,17 @@ class NeuralGenerator(object):
         self.content_img_original, self.content_map_original = self.load_images('content', target)
         self.style_img_original, self.style_map_original = self.load_images('style', args.style)
         print(ansi.ENDC, end='')
+
+        if self.content_map_original is None and self.content_img_original is None:
+            basename, _ = os.path.splitext(target)
+            print("\n{}ERROR: Couldn't find either the target image or a valid semantic map.\n"\
+                  "{}  - Try creating the file `{}_sem.png` with your annotations.{}\n".format(ansi.RED_B, ansi.RED, basename, ansi.ENDC))
+            sys.exit(-1)
+
+        if self.style_img_original is None:
+            print("\n{}ERROR: Couldn't find style image as expected.\n"\
+                  "{}  - Try making sure `{}` exists and is a valid image.{}\n".format(ansi.RED_B, ansi.RED, args.style, ansi.ENDC))
+            sys.exit(-1)
 
         if self.content_map_original is None:
             self.content_map_original = np.zeros(self.content_img_original.shape[:2]+(1,))

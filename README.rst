@@ -1,7 +1,7 @@
 Neural Doodle
 =============
 
-Use a deep neural network to borrow the skills of real artists and turn your two-bit doodles into masterpieces! This project is an implementation of `Semantic Style Transfer <http://arxiv.org/abs/1603.01768>`_ (Champandard, 2016), based on the `Neural Patches <http://arxiv.org/abs/1601.04589>`_ algorithm (Li 2016).
+Use a deep neural network to borrow the skills of real artists and turn your two-bit doodles into masterpieces! This project is an implementation of `Semantic Style Transfer <http://arxiv.org/abs/1603.01768>`_ (Champandard, 2016), based on the `Neural Patches <http://arxiv.org/abs/1601.04589>`_ algorithm (Li, 2016).
 
 The ``doodle.py`` script generates an image by using three or four images as inputs: the original style and its annotation, and a target content image (optional) with its annotation (a.k.a. your doodle). The algorithm then extracts annotated patches from the style image, and incrementally transfers them over to the target image based on how closely they match.
 
@@ -21,18 +21,25 @@ The algorithm is built for style transfer, but can also generate image analogies
 .. code:: bash
 
     # Synthesize a coastline as if painted by Monet. This uses "*_sem.png" masks for both images.
-    python3 doodle.py --device=cpu --style samples/Monet.jpg --output samples/Coastline.png
+    python3 doodle.py --style samples/Monet.jpg --output samples/Coastline.png\
+                      --device=cpu --iterations=40
 
     # Generate a scene around a lake in the style of a Renoir painting.  
-    python3 doodle.py --device=gpu0 --style samples/Renoir.jpg --output samples/Landscape.png 
+    python3 doodle.py --style samples/Renoir.jpg --output samples/Landscape.png\
+                      --device=gpu0 --iterations=80
 
-Note the ``--device`` argument that lets you specify which GPU or CPU to use. The default is to use ``cpu``, if you have NVIDIA card setup with CUDA/CUDNN already try ``gpu0``.
+Note the ``--device`` argument that lets you specify which GPU or CPU to use. For the samples above, here are the performance results:
+
+  * **GPU Rendering** — Assuming you have enough on-board RAM, the process should complete in less than 10 minutes, even with twice the iterations.
+  * **CPU Rendering** — This will take hours and hours, possibly up to 12h on older haldware. To match quality it'd take twice the time. 
+
+The default is to use ``cpu``, if you have NVIDIA card setup with CUDA already try ``gpu0``. You can also set environment variable to ``OMP_NUM_THREADS=4`` for CPU use, but we've found the speed improvements to be minimal.
+
 
 Installation & Setup
 --------------------
 
-This project requires Python 3.x. You'll also need ``numpy`` and ``scipy`` (numerical computing libraries)
-installed system-wide. Afterwards, you can run the following commands from your terminal:
+This project requires Python 3.4+ and you'll also need ``numpy`` and ``scipy`` (numerical computing libraries) as well as ``python3-dev`` installed system-wide. Afterward fetching the repository, you can run the following commands from your terminal to setup a local environment:
 
 .. code:: bash
 
@@ -45,7 +52,7 @@ installed system-wide. Afterwards, you can run the following commands from your 
     # Setup the required dependencies simply using the PIP module.
     python3 -m pip install --ignore-installed -r requirements.txt
 
-.
+After this, you should have ``scikit-image``, ``theano`` and ``lasagne`` installed in your virtual environment.  You'll also need to download this `pre-trained neural network <https://github.com/alexjc/neural-doodle/releases/download/v0.0/vgg19_conv.pkl.bz2>`_ (VGG19, 80Mb) for the script to run. Once you're done you can just delete the ``#/pyvenv/` folder.
 
 .. image:: docs/Coastline_example.png
 

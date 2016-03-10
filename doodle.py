@@ -375,6 +375,9 @@ class NeuralGenerator(object):
         # Adjust the representation to be compatible with the model before computing results.
         current_img = Xn.reshape(self.content_image.shape).astype(np.float32) - self.model.pixel_mean
         grads, *losses = self.compute_grad_and_losses(current_img, self.content_map)
+        
+        if not np.isnan(grads).any():
+            raise RuntimeError("Optimization diverged; try using different device or parameters.")
 
         # Use gradients as an estimate for overall quality.
         self.error = self.error * 0.9 + 0.1 * np.abs(grads).max()
@@ -444,7 +447,8 @@ class NeuralGenerator(object):
             data_bounds = np.zeros((np.product(Xn.shape), 2), dtype=np.float64)
             data_bounds[:] = (0.0, 255.0)
 
-            Xn, Vn, info = scipy.optimize.fmin_l_bfgs_b(
+            try:
+                Xn, Vn, info = scipy.optimize.fmin_l_bfgs_b(
                                 self.evaluate,
                                 Xn.astype(np.float64).flatten(),
                                 bounds=data_bounds,
@@ -452,6 +456,10 @@ class NeuralGenerator(object):
                                 m=4,                             # Maximum correlations kept in memory by algorithm. 
                                 maxfun=args.iterations-1,        # Limit number of calls to evaluate().
                                 iprint=-1)                       # Handle our own logging of information.
+            except RuntimeError:
+                print("{}ERROR: The optimization diverged and NaN numbers were encountered.\n"\
+                      "{}  - Try using a different device or change the parameters.{}\n".format(ansi.RED_B, ansi.RED, ansi.ENDC))
+                sys.exit(-1)
 
             args.seed = 'previous'
             resolution = self.content_image.shape

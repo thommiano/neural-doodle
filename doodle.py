@@ -33,6 +33,7 @@ add_arg('--smoothness',     default=1E+0, type=float,       help='Weight of imag
 add_arg('--seed',           default='noise', type=str,      help='Seed image path, "noise" or "content".')
 add_arg('--iterations',     default=100, type=int,          help='Number of iterations to run each resolution.')
 add_arg('--device',         default='cpu', type=str,        help='Index of the GPU number to use, for theano.')
+add_arg('--safe-mode',      default=0, action='store_true', help='Use conservative Theano setting to avoid problems.')
 add_arg('--print-every',    default=10, type=int,           help='How often to log statistics to stdout.')
 add_arg('--save-every',     default=0, type=int,            help='How frequently to save PNG into `frames`.')
 args = parser.parse_args()
@@ -58,7 +59,9 @@ print('{}Neural Doodle for semantic style transfer.{}'.format(ansi.CYAN_B, ansi.
 
 # Load the underlying deep learning libraries based on the device specified.  If you specify THEANO_FLAGS manually,
 # the code assumes you know what you are doing and they are not overriden!
-os.environ.setdefault('THEANO_FLAGS', 'device=%s,force_device=True,floatX=float32,print_active_device=False' % (args.device))
+extra_flags = ',optimizer=fast_compile' if args.safe_mode else ''
+os.environ.setdefault('THEANO_FLAGS', 'floatX=float32,device={},force_device=True,'\
+                                      'print_active_device=False{}'.format(args.device, extra_flags))
 
 # Scientific Libraries
 import numpy as np
@@ -72,14 +75,14 @@ import theano.tensor.nnet.neighbours
 
 # Deep Learning Framework
 with warnings.catch_warnings():
-    # suppress: "downsample module has been moved to the pool module."
+    # suppress: "downsample module has been moved to the pool module." (Temporary workaround.)
     warnings.simplefilter("ignore")
     import lasagne
 
 from lasagne.layers import Conv2DLayer as ConvLayer, Pool2DLayer as PoolLayer
 from lasagne.layers import InputLayer, ConcatLayer
 
-print('{}  - Using device `{}` for processing the image.{}'.format(ansi.CYAN, theano.config.device, ansi.ENDC))
+print('{}  - Using device `{}` for processing the images.{}'.format(ansi.CYAN, theano.config.device, ansi.ENDC))
 
 
 #----------------------------------------------------------------------------------------------------------------------
@@ -237,6 +240,13 @@ class NeuralGenerator(object):
         
         if img is not None: print('  - Loading {} image data from {}.'.format(name, filename))
         if map is not None: print('  - Loading {} semantic map from {}.'.format(name, mapname))
+        
+        if img is not None and map is not None and img.shape[:2] != map.shape[:2]:
+            print("\n{}ERROR: The {} image and its semantic map have different resolutions. Either:\n"\
+                  "{}  - Resize {} to {}, or\n  - Resize {} to {}.\n"\
+                  .format(ansi.RED_B, name, ansi.RED, filename,map.shape[1::-1], mapname,img.shape[1::-1], ansi.ENDC))
+            sys.exit(-1)
+
         return img, map
 
     #------------------------------------------------------------------------------------------------------------------

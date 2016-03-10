@@ -62,9 +62,17 @@ Troubleshooting Problems
 NotImplementedError: AbstractConv2d theano optimization failed.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This happens when you're running without a GPU, and the CPU libraries were not found.  The neural network expressions cannot be evaluated by Theano. 
+This happens when you're running without a GPU, and the CPU libraries were not found (e.g. ``libblas``).  The neural network expressions cannot be evaluated by Theano and it's raising an exception.
 
-Try `sudo apt-get install libblas-dev libopenblas-dev` to provide the CPU libraries necessary.
+**FIX** ``sudo apt-get install libblas-dev libopenblas-dev``
+
+
+TypeError: max_pool_2d() got an unexpected keyword argument 'mode'
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You need to install Lasagne and Theano directly from the versions specified in ``requirements.txt``, rather than from the PIP versions.  These alternatives are older and don't have the required features.
+
+**FIX** ``python3 -m pip install -r requirements.txt``
 
 
 Frequent Questions

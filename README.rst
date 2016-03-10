@@ -21,19 +21,19 @@ The algorithm is built for style transfer, but can also generate image analogies
 .. code:: bash
 
     # Synthesize a coastline as if painted by Monet. This uses "*_sem.png" masks for both images.
-    python3 doodle.py --style samples/Monet.jpg --output samples/Coastline.png\
+    python3 doodle.py --style samples/Monet.jpg --output samples/Coastline.png \
                       --device=cpu --iterations=40
 
     # Generate a scene around a lake in the style of a Renoir painting.  
-    python3 doodle.py --style samples/Renoir.jpg --output samples/Landscape.png\
+    python3 doodle.py --style samples/Renoir.jpg --output samples/Landscape.png \
                       --device=gpu0 --iterations=80
 
 Note the ``--device`` argument that lets you specify which GPU or CPU to use. For the samples above, here are the performance results:
 
-  * **GPU Rendering** — Assuming you have enough on-board RAM, the process should complete in less than 10 minutes, even with twice the iterations.
-  * **CPU Rendering** — This will take hours and hours, possibly up to 12h on older haldware. To match quality it'd take twice the time. 
+* **GPU Rendering** — Assuming you have CUDA and enough on-board RAM, the process should complete in less than 10 minutes, even with twice the iterations.
+* **CPU Rendering** — This will take hours and hours, even up to 12h on older haldware. To match quality it'd take twice the time. Do multiple runs in parallel!
 
-The default is to use ``cpu``, if you have NVIDIA card setup with CUDA already try ``gpu0``. You can also set environment variable to ``OMP_NUM_THREADS=4`` for CPU use, but we've found the speed improvements to be minimal.
+The default is to use ``cpu``, if you have NVIDIA card setup with CUDA already try ``gpu0``. On the CPU, you can also set environment variable to ``OMP_NUM_THREADS=4``, but we've found the speed improvements to be minimal.
 
 
 Installation & Setup

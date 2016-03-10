@@ -216,8 +216,10 @@ class NeuralGenerator(object):
             self.content_img_original = np.zeros(self.content_map_original.shape[:2]+(3,))
             args.content_weight = 0.0
 
-        assert self.content_map_original.shape[2] == self.style_map_original.shape[2],\
-            "Mismatch in number of channels  for style and content semantic map."
+        if self.content_map_original.shape[2] != self.style_map_original.shape[2]:
+            print("\n{}ERROR: Mismatch in number of channels for style and content semantic map.\n"\
+                  "{}  - Make sure both images are RGB or RGBA.{}\n".format(ansi.RED_B, ansi.RED, args.style, ansi.ENDC))
+            sys.exit(-1)
 
     def load_images(self, name, filename):
         """If the image and map files exist, load them. Otherwise they'll be set to default values later.

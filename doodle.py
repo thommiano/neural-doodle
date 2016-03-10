@@ -376,7 +376,7 @@ class NeuralGenerator(object):
         current_img = Xn.reshape(self.content_image.shape).astype(np.float32) - self.model.pixel_mean
         grads, *losses = self.compute_grad_and_losses(current_img, self.content_map)
         
-        if not np.isnan(grads).any():
+        if np.isnan(grads).any():
             raise RuntimeError("Optimization diverged; try using different device or parameters.")
 
         # Use gradients as an estimate for overall quality.

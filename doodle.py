@@ -319,11 +319,11 @@ class NeuralGenerator(object):
         result = extractor(self.content_image)
 
         # Build a list of loss components that compute the mean squared error by comparing current result to desired.
-        for l in zip(layers, result):
+        for l, ref in zip(self.content_layers, result):
             layer = self.model.tensor_outputs['conv'+l]
-            loss = T.mean((layer - result) ** 2.0)
+            loss = T.mean((layer - ref) ** 2.0)
             content_loss.append(('content', l, args.content_weight * loss))
-            print('  - Content layer conv{}: {} features in {:,}kb.'.format(l, result.shape[1], result.size//1000))
+            print('  - Content layer conv{}: {} features in {:,}kb.'.format(l, ref.shape[1], ref.size//1000))
         return content_loss
 
     def style_loss(self):
@@ -417,14 +417,14 @@ class NeuralGenerator(object):
                     .format(ansi.BLUE_B, i, int(shape[1]*scale), int(shape[0]*scale), scale, ansi.BLUE))
 
             # Precompute all necessary data for the various layers, put patches in place into augmented network.
-            self.model.setup(layers=['sem'+l for l in self.style_layers] + ['conv'+l for l in self.style_layers])
+            self.model.setup(layers=['sem'+l for l in self.style_layers] + ['conv'+l for l in self.content_layers])
             self.prepare_content(scale)
             self.prepare_style(scale)
 
             # Now setup the model with the new data, ready for the optimization loop.
             self.model.setup(layers=['sem'+l for l in self.style_layers] +
                                     ['nn'+l for l in self.style_layers] +
-                                    ['conv'+l for l in self.style_layers])
+                                    ['conv'+l for l in self.content_layers])
             self.prepare_optimization()
             print('{}'.format(ansi.ENDC))
 

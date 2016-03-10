@@ -58,7 +58,7 @@ print('{}Neural Doodle for semantic style transfer.{}'.format(ansi.CYAN_B, ansi.
 
 # Load the underlying deep learning libraries based on the device specified.  If you specify THEANO_FLAGS manually,
 # the code assumes you know what you are doing and they are not overriden!
-os.environ.setdefault('THEANO_FLAGS', 'device=%s,floatX=float32,print_active_device=False' % (args.device))
+os.environ.setdefault('THEANO_FLAGS', 'device=%s,force_device=True,floatX=float32,print_active_device=False' % (args.device))
 
 # Scientific Libraries
 import numpy as np

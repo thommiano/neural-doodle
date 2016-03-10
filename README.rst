@@ -56,6 +56,17 @@ After this, you should have ``scikit-image``, ``theano`` and ``lasagne`` install
 
 .. image:: docs/Coastline_example.png
 
+Troubleshooting Problems
+------------------------
+
+NotImplementedError: AbstractConv2d theano optimization failed.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This happens when you're running without a GPU, and the CPU libraries were not found.  The neural network expressions cannot be evaluated by Theano. 
+
+Try `sudo apt-get install libblas-dev libopenblas-dev` to provide the CPU libraries necessary.
+
+
 Frequent Questions
 ------------------
 

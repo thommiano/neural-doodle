@@ -11,6 +11,7 @@ import sys
 import bz2
 import pickle
 import argparse
+import warnings
 
 
 # Configure all options first so we can custom load other libraries (Theano) based on device specified by user.
@@ -55,7 +56,6 @@ class ansi:
 
 print('{}Neural Doodle for semantic style transfer.{}'.format(ansi.CYAN_B, ansi.ENDC))
 
-
 # Load the underlying deep learning libraries based on the device specified.  If you specify THEANO_FLAGS manually,
 # the code assumes you know what you are doing and they are not overriden!
 os.environ.setdefault('THEANO_FLAGS', 'device=%s,force_device=True,floatX=float32,print_active_device=False' % (args.device))
@@ -71,9 +71,15 @@ import theano.tensor as T
 import theano.tensor.nnet.neighbours
 
 # Deep Learning Framework
-import lasagne
+with warnings.catch_warnings():
+    # suppress: "downsample module has been moved to the pool module."
+    warnings.simplefilter("ignore")
+    import lasagne
+
 from lasagne.layers import Conv2DLayer as ConvLayer, Pool2DLayer as PoolLayer
 from lasagne.layers import InputLayer, ConcatLayer
+
+print('{}  - Using device `{}` for processing the image.{}'.format(ansi.CYAN, theano.config.device, ansi.ENDC))
 
 
 #----------------------------------------------------------------------------------------------------------------------

@@ -1,6 +1,10 @@
 Neural Doodle
 =============
 
+.. image:: http://nucl.ai/files/2016/03/RenoirWorkflow.small.gif
+    :align: right
+    :width: 320px
+
 Use a deep neural network to borrow the skills of real artists and turn your two-bit doodles into masterpieces! This project is an implementation of `Semantic Style Transfer <http://arxiv.org/abs/1603.01768>`_ (Champandard, 2016), based on the `Neural Patches <http://arxiv.org/abs/1601.04589>`_ algorithm (Li, 2016).
 
 The ``doodle.py`` script generates an image by using three or four images as inputs: the original style and its annotation, and a target content image (optional) with its annotation (a.k.a. your doodle). The algorithm then extracts annotated patches from the style image, and incrementally transfers them over to the target image based on how closely they match.
@@ -69,7 +73,7 @@ Troubleshooting Problems
 ========================
 
 It's running out of GPU Ram, throwing ``MemoryError``. Help!
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------------------------------------
 
 You'll need a good NVIDIA card with CUDA to run this software on GPU, ideally 2Gb / 4Gb or better still, 8Gb to 12Gb for larger resolutions.  The code does work on CPU by default, so use that as fallback since you likely have more system RAM!
 
@@ -79,7 +83,7 @@ To improve memory consumption, you can also install NVIDIA's ``cudnn`` library v
 
 
 NotImplementedError: AbstractConv2d theano optimization failed.
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------------------------------------------
 
 This happens when you're running without a GPU, and the CPU libraries were not found (e.g. ``libblas``).  The neural network expressions cannot be evaluated by Theano and it's raising an exception.
 
@@ -87,7 +91,7 @@ This happens when you're running without a GPU, and the CPU libraries were not f
 
 
 TypeError: max_pool_2d() got an unexpected keyword argument 'mode'
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------------------------------------------
 
 You need to install Lasagne and Theano directly from the versions specified in ``requirements.txt``, rather than from the PIP versions.  These alternatives are older and don't have the required features.
 
@@ -95,7 +99,7 @@ You need to install Lasagne and Theano directly from the versions specified in `
 
 
 ValueError: unknown locale: UTF-8
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------------
 
 It seems your terminal is misconfigured and not compatible with the way Python treats locales. You may need to change this in your ``.bash_rc`` or other startup script. Alternatively, this command will fix it once for this shell instance.
 
@@ -103,7 +107,7 @@ It seems your terminal is misconfigured and not compatible with the way Python t
 
 
 ERROR: The optimization diverged and NaN numbers were encountered.
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+------------------------------------------------------------------
 
 It's possible there's a platform bug in the underlying libraries or compiler, which has been reported on MacOS El Capitan.  It's not clear how to fix it, but you can try to disable optimizations to prevent the bug. (See `Issue #8 <https://github.com/alexjc/neural-doodle/issues/8>`_.)
 
@@ -114,7 +118,7 @@ Frequent Questions
 ==================
 
 Q: How is semantic style transfer different to neural analogies?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------------------------------------------
 
 It's still too early to say definitively, both approaches were discovered independently in 2016 by `@alexjc <https://twitter.com/alexjc>`_ and `@awentzonline <https://twitter.com/awentzonline>`_ (respectively). Here are some early impressions:
 

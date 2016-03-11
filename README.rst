@@ -2,6 +2,7 @@ Neural Doodle
 =============
 
 .. image:: docs/Workflow.gif
+    :align: right
 
 Use a deep neural network to borrow the skills of real artists and turn your two-bit doodles into masterpieces! This project is an implementation of `Semantic Style Transfer <http://arxiv.org/abs/1603.01768>`_ (Champandard, 2016), based on the `Neural Patches <http://arxiv.org/abs/1601.04589>`_ algorithm (Li, 2016).
 
@@ -24,7 +25,7 @@ Examples & Usage
 ================
 
 Image Analogy
-~~~~~~~~~~~~~
+-------------
 
 The algorithm is built for style transfer, but can also generate image analogies that we call a ``#NeuralDoodle``; use the hashtag if you post your images!  Example files are included in the ``#/samples/`` folder. Execute with these commands:
 
@@ -62,7 +63,7 @@ This project requires Python 3.4+ and you'll also need ``numpy`` and ``scipy`` (
     # Setup the required dependencies simply using the PIP module.
     python3 -m pip install --ignore-installed -r requirements.txt
 
-After this, you should have ``scikit-image``, ``theano`` and ``lasagne`` installed in your virtual environment.  You'll also need to download this `pre-trained neural network <https://github.com/alexjc/neural-doodle/releases/download/v0.0/vgg19_conv.pkl.bz2>`_ (VGG19, 80Mb) for the script to run. Once you're done you can just delete the ``#/pyvenv/` folder.
+After this, you should have ``scikit-image``, ``theano`` and ``lasagne`` installed in your virtual environment.  You'll also need to download this `pre-trained neural network <https://github.com/alexjc/neural-doodle/releases/download/v0.0/vgg19_conv.pkl.bz2>`_ (VGG19, 80Mb) for the script to run. Once you're done you can just delete the ``#/pyvenv/`` folder.
 
 .. image:: docs/Coastline_example.png
 

@@ -5,7 +5,7 @@ Use a deep neural network to borrow the skills of real artists and turn your two
 
 The ``doodle.py`` script generates an image by using three or four images as inputs: the original style and its annotation, and a target content image (optional) with its annotation (a.k.a. your doodle). The algorithm then extracts annotated patches from the style image, and incrementally transfers them over to the target image based on how closely they match.
 
-1. `Examples & Usage <#examples-usage>`_
+1. `Examples & Usage <#examples--usage>`_
 2. `Installation <#installation-setup>`_
 3. `Troubleshooting <#troubleshooting-problems>`_
 4. `Frequent Questions <#frequent-questions>`_
@@ -45,7 +45,7 @@ The default is to use ``cpu``, if you have NVIDIA card setup with CUDA already t
 
 
 Installation & Setup
---------------------
+====================
 
 This project requires Python 3.4+ and you'll also need ``numpy`` and ``scipy`` (numerical computing libraries) as well as ``python3-dev`` installed system-wide. Afterward fetching the repository, you can run the following commands from your terminal to setup a local environment:
 
@@ -64,8 +64,9 @@ After this, you should have ``scikit-image``, ``theano`` and ``lasagne`` install
 
 .. image:: docs/Coastline_example.png
 
+
 Troubleshooting Problems
-------------------------
+========================
 
 It's running out of GPU Ram, throwing ``MemoryError``. Help!
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -110,7 +111,7 @@ It's possible there's a platform bug in the underlying libraries or compiler, wh
 
 
 Frequent Questions
-------------------
+==================
 
 Q: How is semantic style transfer different to neural analogies?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

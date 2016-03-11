@@ -5,6 +5,11 @@ Use a deep neural network to borrow the skills of real artists and turn your two
 
 The ``doodle.py`` script generates an image by using three or four images as inputs: the original style and its annotation, and a target content image (optional) with its annotation (a.k.a. your doodle). The algorithm then extracts annotated patches from the style image, and incrementally transfers them over to the target image based on how closely they match.
 
+1. `Examples & Usage <#examples-usage>`_
+2. `Installation <#installation-setup>`_
+3. `Troubleshooting <#troubleshooting-problems>`_
+4. `Frequent Questions <#frequent-questions>`_
+
 **NOTE**: This project is possible thanks to the `nucl.ai Conference <http://nucl.ai/>`_ on **July 18-20**. Join us in **Vienna**!
 
 |Python Version| |License Type| |Project Stars|
@@ -13,8 +18,11 @@ The ``doodle.py`` script generates an image by using three or four images as inp
 
 .. image:: docs/Landscape_example.png
 
+Examples & Usage
+================
+
 Image Analogy
--------------
+~~~~~~~~~~~~~
 
 The algorithm is built for style transfer, but can also generate image analogies that we call a ``#NeuralDoodle``; use the hashtag if you post your images!  Example files are included in the ``#/samples/`` folder. Execute with these commands:
 
@@ -59,6 +67,16 @@ After this, you should have ``scikit-image``, ``theano`` and ``lasagne`` install
 Troubleshooting Problems
 ------------------------
 
+It's running out of GPU Ram, throwing ``MemoryError``. Help!
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You'll need a good NVIDIA card with CUDA to run this software on GPU, ideally 2Gb / 4Gb or better still, 8Gb to 12Gb for larger resolutions.  The code does work on CPU by default, so use that as fallback since you likely have more system RAM!
+
+To improve memory consumption, you can also install NVIDIA's ``cudnn`` library version 3.0 or 4.0. This allows convolutional neural networks to run faster and save space in GPU RAM.
+
+**FIX** Use ``--device=cpu`` to use main system memory.
+
+
 NotImplementedError: AbstractConv2d theano optimization failed.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -75,16 +93,24 @@ You need to install Lasagne and Theano directly from the versions specified in `
 **FIX** ``python3 -m pip install -r requirements.txt``
 
 
+ValueError: unknown locale: UTF-8
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It seems your terminal is misconfigured and not compatible with the way Python treats locales. You may need to change this in your ``.bash_rc`` or other startup script. Alternatively, this command will fix it once for this shell instance.
+
+**FIX** ``export LC_ALL=en_US.UTF-8``
+
+
+ERROR: The optimization diverged and NaN numbers were encountered.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+It's possible there's a platform bug in the underlying libraries or compiler, which has been reported on MacOS El Capitan.  It's not clear how to fix it, but you can try to disable optimizations to prevent the bug. (See `Issue #8 <https://github.com/alexjc/neural-doodle/issues/8>`_.)
+
+**FIX** Use ``--safe-mode`` flag to disable optimizations.
+
+
 Frequent Questions
 ------------------
-
-Q: It's running out of GPU Ram, throwing ``MemoryError``. Help!
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-You'll need a good NVIDIA card with CUDA to run this software on GPU, ideally 2Gb / 4Gb or better still, 8Gb to 12Gb for larger resolutions.  The code does work on CPU by default, so use that as fallback since you likely have more system RAM!
-
-To improve memory consumption, you can also install NVIDIA's ``cudnn`` library version 3.0 or 4.0. This allows convolutional neural networks to run faster and save space in GPU RAM.
-
 
 Q: How is semantic style transfer different to neural analogies?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

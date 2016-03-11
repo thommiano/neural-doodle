@@ -1,9 +1,7 @@
 Neural Doodle
 =============
 
-.. image:: http://nucl.ai/files/2016/03/RenoirWorkflow.small.gif
-    :align: right
-    :width: 320px
+.. image:: docs/Workflow.gif
 
 Use a deep neural network to borrow the skills of real artists and turn your two-bit doodles into masterpieces! This project is an implementation of `Semantic Style Transfer <http://arxiv.org/abs/1603.01768>`_ (Champandard, 2016), based on the `Neural Patches <http://arxiv.org/abs/1601.04589>`_ algorithm (Li, 2016).
 

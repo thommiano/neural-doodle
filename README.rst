@@ -24,14 +24,14 @@ The algorithm is built for style transfer, but can also generate image analogies
     python3 doodle.py --style samples/Monet.jpg --output samples/Coastline.png \
                       --device=cpu --iterations=40
 
-    # Generate a scene around a lake in the style of a Renoir painting.  
+    # Generate a scene around a lake in the style of a Renoir painting.
     python3 doodle.py --style samples/Renoir.jpg --output samples/Landscape.png \
                       --device=gpu0 --iterations=80
 
 Note the ``--device`` argument that lets you specify which GPU or CPU to use. For the samples above, here are the performance results:
 
 * **GPU Rendering** — Assuming you have CUDA and enough on-board RAM, the process should complete in less than 10 minutes, even with twice the iterations.
-* **CPU Rendering** — This will take hours and hours, even up to 12h on older haldware. To match quality it'd take twice the time. Do multiple runs in parallel!
+* **CPU Rendering** — This will take hours and hours, even up to 12h on older hardware. To match quality it'd take twice the time. Do multiple runs in parallel!
 
 The default is to use ``cpu``, if you have NVIDIA card setup with CUDA already try ``gpu0``. On the CPU, you can also set environment variable to ``OMP_NUM_THREADS=4``, but we've found the speed improvements to be minimal.
 
@@ -45,10 +45,10 @@ This project requires Python 3.4+ and you'll also need ``numpy`` and ``scipy`` (
 
     # Create a local environment for Python 3.x to install dependencies here.
     python3 -m venv pyvenv --system-site-packages
-    
+
     # If you're using bash, make this the active version of Python.
     source pyvenv/bin/activate
-    
+
     # Setup the required dependencies simply using the PIP module.
     python3 -m pip install --ignore-installed -r requirements.txt
 

@@ -24,6 +24,13 @@ The ``doodle.py`` script generates an image by using three or four images as inp
 Examples & Usage
 ================
 
+Note the ``--device`` argument that lets you specify which GPU or CPU to use. For the samples above, here are the performance results:
+
+* **GPU Rendering** — Assuming you have CUDA setup and enough on-board RAM, the process should complete in 3 to 8 minutes, even with twice the iteration count.
+* **CPU Rendering** — This will take hours and hours, even up to 12h on older hardware. To match quality it'd take twice the time. Do multiple runs in parallel!
+
+The default is to use ``cpu``, if you have NVIDIA card setup with CUDA already try ``gpu0``. On the CPU, you can also set environment variable to ``OMP_NUM_THREADS=4``, but we've found the speed improvements to be minimal.
+
 Image Analogy
 -------------
 
@@ -39,12 +46,25 @@ The algorithm is built for style transfer, but can also generate image analogies
     python3 doodle.py --style samples/Renoir.jpg --output samples/Landscape.png \
                       --device=gpu0 --iterations=80
 
-Note the ``--device`` argument that lets you specify which GPU or CPU to use. For the samples above, here are the performance results:
+Notice the Renoir results look a little better than the Monet. Some rotational variations of the source image could improve the quality of the arch outline in particular.
 
-* **GPU Rendering** — Assuming you have CUDA and enough on-board RAM, the process should complete in less than 10 minutes, even with twice the iterations.
-* **CPU Rendering** — This will take hours and hours, even up to 12h on older hardware. To match quality it'd take twice the time. Do multiple runs in parallel!
 
-The default is to use ``cpu``, if you have NVIDIA card setup with CUDA already try ``gpu0``. On the CPU, you can also set environment variable to ``OMP_NUM_THREADS=4``, but we've found the speed improvements to be minimal.
+Style Transfer
+--------------
+
+If you want to transfer the style given a source style with annotations, and a target content image with annotations, you can use the following command lines.  In all cases, the semantic map is loaded and used if it's found under the ``*_sem.png`` filename.
+
+.. code:: bash
+
+    # Synthesize a portrait of Seth Johnson like a Gogh portrait. This uses "*_sem.png" masks for both images.
+    python3 doodle.py --style samples/Gogh.jpg --content samples/Seth.png \
+                      --output SethAsGogh.png --device=cpu --iterations=40
+
+    # Generate what a photo of Vincent van Gogh would look like, using Seth's portrait as reference.
+    python3 doodle.py --style samples/Gogh.jpg --content samples/Seth.png \
+                      --output GoghAsSeth.png --device=gpu0 --iterations=80
+
+To perform regular style transfer without semantic annotations, simply delete or rename the files with the semantic maps.  The photo is originally by Seth Johnson, and the concept for this style transfer by Kyle McDonald.
 
 
 Installation & Setup
@@ -123,6 +143,16 @@ It's possible there's a platform bug in the underlying libraries or compiler, wh
 
 Frequent Questions
 ==================
+
+Q: When will this be possible in realtime? I want it as filter!
+---------------------------------------------------------------
+
+Currently these techniques are only production ready if you're willing to deploy a GPU farm for the rendering. This is easier and cheaper than you might think considering the benefits!
+
+To improve the performance of `patch-based algorithms <http://arxiv.org/abs/1601.04589>`_, significant additional research is required to modify the brute-force nearest neighbor matching of patches. `DeepForger <https://twitter.com/>`_ has some of these performance improvements, but there's a long way to go and making sure it works faster without losing quality is a challenge.
+
+It's likely these techniques will be good enough for an iterative workflow in 6-12 months. This would only require some engineering tricks (e.g. reusing previously synthesized images) rather than fundamental algorithm changes.
+
 
 Q: How is semantic style transfer different to neural analogies?
 ----------------------------------------------------------------

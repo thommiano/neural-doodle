@@ -227,7 +227,7 @@ class NeuralGenerator(object):
 
         if self.content_map_original.shape[2] != self.style_map_original.shape[2]:
             print("\n{}ERROR: Mismatch in number of channels for style and content semantic map.\n"\
-                  "{}  - Make sure both images are RGB or RGBA.{}\n".format(ansi.RED_B, ansi.RED, args.style, ansi.ENDC))
+                  "{}  - Make sure both images are RGB or RGBA.{}\n".format(ansi.RED_B, ansi.RED, ansi.ENDC))
             sys.exit(-1)
 
     def load_images(self, name, filename):
@@ -366,8 +366,10 @@ class NeuralGenerator(object):
             # Pick the best style patches for each patch in the current image, the result is an array of indices.
             best = dist.argmax(axis=0)
             
-            # Now compute the mean squared error between the current patch and the best matching style patch.
-            loss = T.mean((patches[:,:-3] - layer.W[best,:-3]) ** 2.0)
+            # Compute the mean squared error between the current patch and the best matching style patch.
+            # Ignore the last channels (from semantic map) so errors returned are indicative of image only.
+            channels = self.style_map_original.shape[2]
+            loss = T.mean((patches[:,:-channels] - layer.W[best,:-channels]) ** 2.0)
             style_loss.append(('style', l, args.style_weight * loss))
 
         return style_loss

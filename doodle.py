@@ -393,7 +393,7 @@ class NeuralGenerator(object):
         grads, *losses = self.compute_grad_and_losses(current_img, self.content_map)
         
         if np.isnan(grads).any():
-            raise RuntimeError("Optimization diverged; try using different device or parameters.")
+            raise OverflowError("Optimization diverged; try using different device or parameters.")
 
         # Use gradients as an estimate for overall quality.
         self.error = self.error * 0.9 + 0.1 * np.abs(grads).max()
@@ -472,9 +472,10 @@ class NeuralGenerator(object):
                                 m=4,                             # Maximum correlations kept in memory by algorithm. 
                                 maxfun=args.iterations-1,        # Limit number of calls to evaluate().
                                 iprint=-1)                       # Handle our own logging of information.
-            except RuntimeError:
-                print("{}ERROR: The optimization diverged and NaN numbers were encountered.\n"\
-                      "{}  - Try using a different device or change the parameters.{}\n".format(ansi.RED_B, ansi.RED, ansi.ENDC))
+            except OverflowError:
+                print("{}ERROR: The optimization diverged and NaNs were encountered.{}\n"\
+                      "  - Try using a different `--device` or change the parameters.\n"\
+                      "  - Experiment with `--safe-mode` to work around platform bugs.{}\n".format(ansi.RED_B, ansi.RED, ansi.ENDC))
                 sys.exit(-1)
 
             args.seed = 'previous'

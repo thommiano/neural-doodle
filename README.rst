@@ -78,7 +78,15 @@ You'll need a good NVIDIA card with CUDA to run this software on GPU, ideally 2G
 
 To improve memory consumption, you can also install NVIDIA's ``cudnn`` library version 3.0 or 4.0. This allows convolutional neural networks to run faster and save space in GPU RAM.
 
-**FIX** Use ``--device=cpu`` to use main system memory.
+**FIX:** Use ``--device=cpu`` to use main system memory.
+
+
+Can't install or Unable to find pgen, not compiling formal grammar.
+-------------------------------------------------------------------
+
+There's a Python extension compiler called Cython, and it's missing or inproperly installed. Try getting it directly from the system package manager rather than PIP.
+
+*FIX:* ``sudo apt-get install cython3``
 
 
 NotImplementedError: AbstractConv2d theano optimization failed.
@@ -86,7 +94,7 @@ NotImplementedError: AbstractConv2d theano optimization failed.
 
 This happens when you're running without a GPU, and the CPU libraries were not found (e.g. ``libblas``).  The neural network expressions cannot be evaluated by Theano and it's raising an exception.
 
-**FIX** ``sudo apt-get install libblas-dev libopenblas-dev``
+**FIX:** ``sudo apt-get install libblas-dev libopenblas-dev``
 
 
 TypeError: max_pool_2d() got an unexpected keyword argument 'mode'
@@ -94,7 +102,7 @@ TypeError: max_pool_2d() got an unexpected keyword argument 'mode'
 
 You need to install Lasagne and Theano directly from the versions specified in ``requirements.txt``, rather than from the PIP versions.  These alternatives are older and don't have the required features.
 
-**FIX** ``python3 -m pip install -r requirements.txt``
+**FIX:** ``python3 -m pip install -r requirements.txt``
 
 
 ValueError: unknown locale: UTF-8
@@ -102,15 +110,15 @@ ValueError: unknown locale: UTF-8
 
 It seems your terminal is misconfigured and not compatible with the way Python treats locales. You may need to change this in your ``.bash_rc`` or other startup script. Alternatively, this command will fix it once for this shell instance.
 
-**FIX** ``export LC_ALL=en_US.UTF-8``
+**FIX:** ``export LC_ALL=en_US.UTF-8``
 
 
-ERROR: The optimization diverged and NaN numbers were encountered.
-------------------------------------------------------------------
+ERROR: The optimization diverged and NaNs were encountered.
+-----------------------------------------------------------
 
 It's possible there's a platform bug in the underlying libraries or compiler, which has been reported on MacOS El Capitan.  It's not clear how to fix it, but you can try to disable optimizations to prevent the bug. (See `Issue #8 <https://github.com/alexjc/neural-doodle/issues/8>`_.)
 
-**FIX** Use ``--safe-mode`` flag to disable optimizations.
+**FIX:** Use ``--safe-mode`` flag to disable optimizations.
 
 
 Frequent Questions

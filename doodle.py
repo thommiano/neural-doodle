@@ -217,6 +217,18 @@ class NeuralGenerator(object):
                   "{}  - Try making sure `{}` exists and is a valid image.{}\n".format(ansi.RED_B, ansi.RED, args.style, ansi.ENDC))
             sys.exit(-1)
 
+        if self.content_map_original is not None and self.style_map_original is None:
+            basename, _ = os.path.splitext(args.style)
+            print("\n{}ERROR: Expecting a semantic map for the input style image too.\n"\
+                  "{}  - Try creating the file `{}_sem.png` with your annotations.{}\n".format(ansi.RED_B, ansi.RED, basename, ansi.ENDC))
+            sys.exit(-1)
+
+        if self.style_map_original is not None and self.content_map_original is None:
+            basename, _ = os.path.splitext(target)
+            print("\n{}ERROR: Expecting a semantic map for the input content image too.\n"\
+                  "{}  - Try creating the file `{}_sem.png` with your annotations.{}\n".format(ansi.RED_B, ansi.RED, basename, ansi.ENDC))
+            sys.exit(-1)
+
         if self.content_map_original is None:
             self.content_map_original = np.zeros(self.content_img_original.shape[:2]+(1,))
             self.semantic_weight = 0.0

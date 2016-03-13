@@ -233,6 +233,10 @@ class NeuralGenerator(object):
             self.content_map_original = np.zeros(self.content_img_original.shape[:2]+(1,))
             self.semantic_weight = 0.0
 
+        if self.style_map_original is None:
+            self.style_map_original = np.zeros(self.style_img_original.shape[:2]+(1,))
+            self.semantic_weight = 0.0
+
         if self.content_img_original is None:
             self.content_img_original = np.zeros(self.content_map_original.shape[:2]+(3,))
             args.content_weight = 0.0

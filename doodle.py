@@ -128,7 +128,7 @@ class Model(object):
         net['map_3'] = PoolLayer(net['map'], 4, mode='average_exc_pad')
         net['map_4'] = PoolLayer(net['map'], 8, mode='average_exc_pad')
 
-        net['sem2_1'] = ConcatLayer([net['conv3_1'], net['map_2']])
+        net['sem2_1'] = ConcatLayer([net['conv2_1'], net['map_2']])
         net['sem3_1'] = ConcatLayer([net['conv3_1'], net['map_3']])
         net['sem4_1'] = ConcatLayer([net['conv4_1'], net['map_4']])
 

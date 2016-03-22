@@ -52,19 +52,36 @@ Notice the Renoir results look a little better than the Monet. Some rotational v
 Style Transfer
 --------------
 
-If you want to transfer the style given a source style with annotations, and a target content image with annotations, you can use the following command lines.  In all cases, the semantic map is loaded and used if it's found under the ``*_sem.png`` filename.
+If you want to transfer the style given a source style with annotations, and a target content image with annotations, you can use the following command lines.  In all cases, the semantic map is loaded and used if it's found under the ``*_sem.png`` filename that matches the input file.
 
 .. code:: bash
 
     # Synthesize a portrait of Seth Johnson like a Gogh portrait. This uses "*_sem.png" masks for both images.
     python3 doodle.py --style samples/Gogh.jpg --content samples/Seth.png \
-                      --output SethAsGogh.png --device=cpu --iterations=40
+                      --output SethAsGogh.png --device=cpu --resolutions=4 --iterations=40
 
     # Generate what a photo of Vincent van Gogh would look like, using Seth's portrait as reference.
-    python3 doodle.py --style samples/Gogh.jpg --content samples/Seth.png \
-                      --output GoghAsSeth.png --device=gpu0 --iterations=80
+    python3 doodle.py --style samples/Seth.jpg --content samples/Gogh.png \
+                      --output GoghAsSeth.png --device=gpu0 --resolutions=4 --iterations=80
 
-To perform regular style transfer without semantic annotations, simply delete or rename the files with the semantic maps.  The photo is originally by Seth Johnson, and the concept for this style transfer by Kyle McDonald.
+To perform regular style transfer without semantic annotations, simply delete or rename the files with the semantic maps.  The photo is originally by `Seth Johnson <http://sethjohnson.tumblr.com/post/655063019/this-was-a-project-for-an-art-history-class-turns>`_, and the concept for this style transfer by `Kyle McDonald <https://twitter.com/kcimc>`_.
+
+
+.. image:: docs/Portraits_example.jpg
+
+
+Script Parameters
+-----------------
+
+You can configure the algorithm using the following parameters. Type ``python3 doodle.py --help`` for the full list of options, or see the source code.
+
+* ``--style-weight=50.0`` — Weight of style relative to content.
+* ``--style-layers=3_1,4_1`` — The layers to match style patches.
+* ``--semantic-weight=1.0`` — Global weight of semantics vs. features.
+* ``--smoothness=1.0`` — Weight of image smoothing scheme.
+* ``--seed=noise`` — Seed image path, "noise" or "content".
+* ``--print-every=10`` — How often to log statistics to stdout.
+* ``--save-every=10`` — How frequently to save PNG into `frames`.
 
 
 Installation & Setup
@@ -149,7 +166,7 @@ Q: When will this be possible in realtime? I want it as filter!
 
 Currently these techniques are only production ready if you're willing to deploy a GPU farm for the rendering. This is easier and cheaper than you might think considering the benefits!
 
-To improve the performance of `patch-based algorithms <http://arxiv.org/abs/1601.04589>`_, significant additional research is required to modify the brute-force nearest neighbor matching of patches. `DeepForger <https://twitter.com/>`_ has some of these performance improvements, but there's a long way to go and making sure it works faster without losing quality is a challenge.
+To improve the performance of `patch-based algorithms <http://arxiv.org/abs/1601.04589>`_, significant additional research is required to modify the brute-force nearest neighbor matching of patches. `DeepForger <https://twitter.com/DeepForger>`_ has some of these performance improvements, but there's a long way to go and making sure it works faster without losing quality is a challenge.
 
 It's likely these techniques will be good enough for an iterative workflow in 6-12 months. This would only require some engineering tricks (e.g. reusing previously synthesized images) rather than fundamental algorithm changes.
 

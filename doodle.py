@@ -35,7 +35,7 @@ add_arg('--iterations',     default=100, type=int,          help='Number of iter
 add_arg('--device',         default='cpu', type=str,        help='Index of the GPU number to use, for theano.')
 add_arg('--safe-mode',      default=0, action='store_true', help='Use conservative Theano setting to avoid problems.')
 add_arg('--print-every',    default=10, type=int,           help='How often to log statistics to stdout.')
-add_arg('--save-every',     default=0, type=int,            help='How frequently to save PNG into `frames`.')
+add_arg('--save-every',     default=10, type=int,            help='How frequently to save PNG into `frames`.')
 args = parser.parse_args()
 
 
@@ -197,6 +197,8 @@ class NeuralGenerator(object):
         self.style_layers = args.style_layers.split(',')
         self.content_layers = args.content_layers.split(',')
 
+        if args.save_every is not None:
+            os.makedirs('frames', exist_ok=True)
         if args.output is not None and os.path.isfile(args.output):
             os.remove(args.output)
 

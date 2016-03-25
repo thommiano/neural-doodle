@@ -107,7 +107,7 @@ class Model(object):
 
         # First network for the main image. These are convolution only, and stop at layer 4_2 (rest unused).
         net['img']     = InputLayer((1, 3, None, None))
-        net['conv1_1'] = ConvLayer(net['img'],   64, 3, pad=1)
+        net['conv1_1'] = ConvLayer(net['img'],     64, 3, pad=1)
         net['conv1_2'] = ConvLayer(net['conv1_1'], 64, 3, pad=1)
         net['pool1']   = PoolLayer(net['conv1_2'], 2, mode='average_exc_pad')
         net['conv2_1'] = ConvLayer(net['pool1'],   128, 3, pad=1)
@@ -124,17 +124,17 @@ class Model(object):
 
         # Second network for the semantic layers.  This dynamically downsamples the map and concatenates it.
         net['map'] = InputLayer((1, 3, None, None))
-        net['map_2'] = PoolLayer(net['map'], 2, mode='average_exc_pad')
-        net['map_3'] = PoolLayer(net['map'], 4, mode='average_exc_pad')
-        net['map_4'] = PoolLayer(net['map'], 8, mode='average_exc_pad')
-
-        net['sem2_1'] = ConcatLayer([net['conv2_1'], net['map_2']])
-        net['sem3_1'] = ConcatLayer([net['conv3_1'], net['map_3']])
-        net['sem4_1'] = ConcatLayer([net['conv4_1'], net['map_4']])
+        net['map2_1'] = PoolLayer(net['map'], 2, mode='average_exc_pad')
+        net['map3_1'] = PoolLayer(net['map'], 4, mode='average_exc_pad')
+        net['map4_1'] = PoolLayer(net['map'], 8, mode='average_exc_pad')
 
         # Third network for the nearest neighbors; it's a default size for now, updated once we know more.
-        net['nn3_1'] = ConvLayer(net['sem3_1'], 1, 3, b=None, pad=0)
-        net['nn4_1'] = ConvLayer(net['sem4_1'], 1, 3, b=None, pad=0)
+        net['nn2_1'] = ConvLayer(net['conv2_1'], 1, 3, b=None, pad=0)
+        net['mm2_1'] = ConvLayer(net['map2_1'], 1, 3, b=None, pad=0)
+        net['nn3_1'] = ConvLayer(net['conv3_1'], 1, 3, b=None, pad=0)
+        net['mm3_1'] = ConvLayer(net['map3_1'], 1, 3, b=None, pad=0)
+        net['nn4_1'] = ConvLayer(net['conv4_1'], 1, 3, b=None, pad=0)
+        net['mm4_1'] = ConvLayer(net['map4_1'], 1, 3, b=None, pad=0)
 
         self.network = net
 
@@ -299,19 +299,29 @@ class NeuralGenerator(object):
             flags = {}
 
         # Compile a function to run on the GPU to extract patches for all layers at once.
+        required_layers = ['conv'+l for l in self.style_layers] + ['map'+l for l in self.style_layers]
         extractor = theano.function(
                         [self.model.tensor_img, self.model.tensor_map],
-                        self.extract_patches([self.model.tensor_outputs['sem'+l] for l in self.style_layers]),
+                        self.extract_patches([self.model.tensor_outputs[l] for l in required_layers]),
                         **flags)
         result = extractor(self.style_image, self.style_map)
 
-        # For each layer, we now have a set of patches and their magnitude.
-        for layer, patches, norms in zip(self.style_layers, result[::2], result[1::2]):
-            l = self.model.network['nn'+layer]
+        # For each layer, build it from set of patches and their magnitude.
+        def build(layer, prefix, name, patches, norms):
+            l = self.model.network[prefix+layer]
             l.N = theano.shared(norms)
             l.W.set_value(patches)
             l.num_filters = patches.shape[0]
-            print('  - Style layer sem{}: {} patches in {:,}kb.'.format(layer, patches.shape[0], patches.size//1000))
+            print('  - {} layer {}: {} patches in {:,}kb.'.format(name, layer, patches.shape[0], patches.size//1000))
+
+        result_nn = result[:len(self.style_layers)*2]
+        for layer, *data in zip(self.style_layers, result_nn[::2], result_nn[1::2]):
+            build(layer, 'nn', 'Style', *data)
+
+        result_mm = result[len(self.style_layers)*2:]
+        for layer, *data in zip(self.style_layers, result_mm[::2], result_mm[1::2]):
+            build(layer, 'mm', 'Semantic', *data)
+
 
     def extract_patches(self, layers, size=3, stride=1):
         """This function builds a Theano expression that will get compiled an run on the GPU. It extracts 3x3 patches
@@ -322,10 +332,10 @@ class NeuralGenerator(object):
             # Use a Theano helper function to extract "neighbors" of specific size, seems a bit slower than doing
             # it manually but much simpler!
             patches = theano.tensor.nnet.neighbours.images2neibs(f, (size, size), (stride, stride), mode='valid')
-            
+
             # Make sure the patches are in the shape required to insert them into the model as another layer.
             patches = patches.reshape((-1, patches.shape[0] // f.shape[1], size, size)).dimshuffle((1, 0, 2, 3))
-            
+
             # Calcualte the magnitude that we'll use for normalization at runtime, then store...
             norm = T.sqrt(T.sum(patches ** 2.0, axis=(1,2,3), keepdims=True))
             results.extend([patches[:,:,::-1,::-1], norm])
@@ -380,7 +390,7 @@ class NeuralGenerator(object):
             return style_loss
 
         # Extract the patches from the current image, as well as their magnitude.
-        result = self.extract_patches([self.model.tensor_outputs['sem'+l] for l in self.style_layers])
+        result = self.extract_patches([self.model.tensor_outputs['conv'+l] for l in self.style_layers])
 
         # Multiple style layers are optimized separately, usually sem3_1 and sem4_1.
         for l, patches, norms in zip(self.style_layers, result[::2], result[1::2]):
@@ -390,13 +400,15 @@ class NeuralGenerator(object):
             dist = self.model.tensor_outputs['nn'+l]
             dist = dist.reshape((dist.shape[1], -1)) / norms.reshape((1,-1)) / layer.N.reshape((-1,1))
 
+            sem = self.model.tensor_outputs['mm'+l]
+            sem = sem.reshape((sem.shape[1], -1))
+
             # Pick the best style patches for each patch in the current image, the result is an array of indices.
-            best = dist.argmax(axis=0)
-            
+            best = (dist * sem).argmax(axis=0)
+
             # Compute the mean squared error between the current patch and the best matching style patch.
             # Ignore the last channels (from semantic map) so errors returned are indicative of image only.
-            channels = self.style_map_original.shape[2]
-            loss = T.mean((patches[:,:-channels] - layer.W[best,:-channels]) ** 2.0)
+            loss = T.mean((patches - layer.W[best]) ** 2.0)
             style_loss.append(('style', l, args.style_weight * loss))
 
         return style_loss
@@ -420,7 +432,7 @@ class NeuralGenerator(object):
         # Adjust the representation to be compatible with the model before computing results.
         current_img = Xn.reshape(self.content_image.shape).astype(np.float32) - self.model.pixel_mean
         grads, *losses = self.compute_grad_and_losses(current_img, self.content_map)
-        
+
         if np.isnan(grads).any():
             raise OverflowError("Optimization diverged; try using different device or parameters.")
 
@@ -467,13 +479,16 @@ class NeuralGenerator(object):
                     .format(ansi.BLUE_B, i, int(shape[1]*scale), int(shape[0]*scale), scale, ansi.BLUE))
 
             # Precompute all necessary data for the various layers, put patches in place into augmented network.
-            self.model.setup(layers=['sem'+l for l in self.style_layers] + ['conv'+l for l in self.content_layers])
+            self.model.setup(layers=['conv'+l for l in self.style_layers] +
+                                    ['map'+l for l in self.style_layers] +
+                                    ['conv'+l for l in self.content_layers])
             self.prepare_content(scale)
             self.prepare_style(scale)
 
             # Now setup the model with the new data, ready for the optimization loop.
-            self.model.setup(layers=['sem'+l for l in self.style_layers] +
+            self.model.setup(layers=['conv'+l for l in self.style_layers] +
                                     ['nn'+l for l in self.style_layers] +
+                                    ['mm'+l for l in self.style_layers] +
                                     ['conv'+l for l in self.content_layers])
             self.prepare_optimization()
             print('{}'.format(ansi.ENDC))

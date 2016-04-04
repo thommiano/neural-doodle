@@ -1,4 +1,4 @@
 matplotlib>=1.5
 scikit-image>=0.12
-git+https://github.com/Theano/Theano.git@e7f6b32#egg=Theano==0.8-dev
+Theano>=0.8.1
 git+https://github.com/Lasagne/Lasagne.git@664b8a4#egg=Lasagne==0.2-dev

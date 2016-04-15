@@ -11,6 +11,7 @@ import sys
 import bz2
 import pickle
 import argparse
+import itertools
 
 
 # Configure all options first so we can custom load other libraries (Theano) based on device specified by user.
@@ -104,7 +105,7 @@ class Model(object):
 
         net = {}
 
-        # First network for the main image. These are convolution only, and stop at layer 4_2 (rest unused).
+        # Primary network for the main image. These are convolution only, and stop at layer 4_2 (rest unused).
         net['img']     = InputLayer((1, 3, None, None))
         net['conv1_1'] = ConvLayer(net['img'],     64, 3, pad=1)
         net['conv1_2'] = ConvLayer(net['conv1_1'], 64, 3, pad=1)
@@ -128,23 +129,16 @@ class Model(object):
         net['conv5_4'] = ConvLayer(net['conv5_3'], 512, 3, pad=1)
         net['main']    = net['conv5_4']
 
-        # Second network for the semantic layers.  This dynamically downsamples the map and concatenates it.
+        # Auxiliary network for the semantic layers, and the nearest neighbors calculations.
         net['map'] = InputLayer((1, 3, None, None))
-        net['map1_1'] = PoolLayer(net['map'], 1, mode='average_exc_pad')
-        net['map2_1'] = PoolLayer(net['map'], 2, mode='average_exc_pad')
-        net['map3_1'] = PoolLayer(net['map'], 4, mode='average_exc_pad')
-        net['map4_1'] = PoolLayer(net['map'], 8, mode='average_exc_pad')
+        for j, i in itertools.product(range(5), range(4)):
+            if j < 2 and i > 1: continue
+            suffix = '%i_%i' % (j+1, i+1)
 
-        # Third network for the nearest neighbors; it's a default size for now, updated once we know more.
-        net['nn1_1'] = ConvLayer(net['conv1_1'], 1, 3, b=None, pad=0)
-        net['nn2_1'] = ConvLayer(net['conv2_1'], 1, 3, b=None, pad=0)
-        net['nn3_1'] = ConvLayer(net['conv3_1'], 1, 3, b=None, pad=0)
-        net['nn4_1'] = ConvLayer(net['conv4_1'], 1, 3, b=None, pad=0)
+            net['map'+suffix] = PoolLayer(net['map'], 2**j, mode='average_exc_pad')
 
-        net['mm1_1'] = ConvLayer(net['map1_1'], 1, 3, b=None, pad=0)
-        net['mm2_1'] = ConvLayer(net['map2_1'], 1, 3, b=None, pad=0)
-        net['mm3_1'] = ConvLayer(net['map3_1'], 1, 3, b=None, pad=0)
-        net['mm4_1'] = ConvLayer(net['map4_1'], 1, 3, b=None, pad=0)
+            net['nn'+suffix] = ConvLayer(net['conv'+suffix], 1, 3, b=None, pad=0)
+            net['mm'+suffix] = ConvLayer(net['map'+suffix], 1, 3, b=None, pad=0)
 
         self.network = net
 

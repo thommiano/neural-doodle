@@ -118,6 +118,27 @@ To improve memory consumption, you can also install NVIDIA's ``cudnn`` library v
 **FIX:** Use ``--device=cpu`` to use main system memory.
 
 
+How much GPU is being used? It doesn't seem very fast...
+--------------------------------------------------------
+
+If everything is setup correctly, the GPU should be used regularly as the gradient calculations are offloaded. If you run NVIDIA's monitoring tool it looks something like this:
+
+.. code:: bash
+    # gpu   pwr  temp    sm   mem   enc   dec  mclk  pclk
+    # Idx     W     C     %     %     %     %   MHz   MHz
+        0    88    63    50    25     0     0  3004  1252
+        0    60    63     0     1     0     0  3004  1252
+        0    75    63    19     9     0     0  3004  1252
+        0    59    63     0     1     0     0  3004  1240
+        0    62    63    16     3     0     0  3004  1240
+        0    63    64     2     1     0     0  3004  1252
+        0    66    63    26     4     0     0  3004  1252 
+
+The third column is the utilitazition of compute resources, and the fourth column is the use of memory.  If memory is under-used you can increase resolution!  If compute is under allocated too you can try running multiple scripts in parallel!
+
+**FIX:** Run ``nvidia-smi dmon`` and check the ``sm`` column.
+
+
 Can't install or Unable to find pgen, not compiling formal grammar.
 -------------------------------------------------------------------
 

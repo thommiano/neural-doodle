@@ -127,7 +127,7 @@ To improve memory consumption, you can also install NVIDIA's ``cudnn`` library v
 How much GPU is being used? It doesn't seem very fast...
 --------------------------------------------------------
 
-If everything is setup correctly, the GPU should be used regularly as the gradient calculations are offloaded. If you run NVIDIA's monitoring tool it looks something like this:
+First make sure CUDA is installed correctly and environment variables are set, then reinstall ``theano``.  If everything is setup correctly, the GPU should be used regularly as the gradient calculations are offloaded. If you run NVIDIA's monitoring tool it looks something like this:
 
 .. code:: bash
     # gpu   pwr  temp    sm   mem   enc   dec  mclk  pclk

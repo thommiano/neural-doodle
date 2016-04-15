@@ -11,7 +11,6 @@ import sys
 import bz2
 import pickle
 import argparse
-import warnings
 
 
 # Configure all options first so we can custom load other libraries (Theano) based on device specified by user.
@@ -73,12 +72,12 @@ import theano
 import theano.tensor as T
 import theano.tensor.nnet.neighbours
 
-# Deep Learning Framework
-with warnings.catch_warnings():
-    # suppress: "downsample module has been moved to the pool module." (Temporary workaround.)
-    warnings.simplefilter("ignore")
-    import lasagne
+# Support ansi colors in Windows too.
+if sys.platform == 'win32':
+    import colorama
 
+# Deep Learning Framework
+import lasagne
 from lasagne.layers import Conv2DLayer as ConvLayer, Pool2DLayer as PoolLayer
 from lasagne.layers import InputLayer, ConcatLayer
 

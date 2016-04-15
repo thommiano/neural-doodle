@@ -87,7 +87,13 @@ You can configure the algorithm using the following parameters. Type ``python3 d
 Installation & Setup
 ====================
 
-This project requires Python 3.4+ and you'll also need ``numpy`` and ``scipy`` (numerical computing libraries) as well as ``python3-dev`` installed system-wide. Afterward fetching the repository, you can run the following commands from your terminal to setup a local environment:
+This project requires Python 3.4+ and you'll also need ``numpy`` and ``scipy`` (numerical computing libraries) as well as ``python3-dev`` installed system-wide.  If you want more detailed instructions, follow these:
+
+1. `Linux Installation of Lasagne <https://github.com/Lasagne/Lasagne/wiki/From-Zero-to-Lasagne-on-Ubuntu-14.04>`_ **(recommended)**
+2. `OSX Installation of Lasagne <http://deeplearning.net/software/theano/install.html#mac-os>`_ **(intermediate)**
+3. `Windows Installation of Lasagne <https://github.com/Lasagne/Lasagne/wiki/From-Zero-to-Lasagne-on-Windows-7-%2864-bit%29>`_ **(expert)**
+
+Afterward fetching the repository, you can run the following commands from your terminal to setup a local environment:
 
 .. code:: bash
 
@@ -100,7 +106,7 @@ This project requires Python 3.4+ and you'll also need ``numpy`` and ``scipy`` (
     # Setup the required dependencies simply using the PIP module.
     python3 -m pip install --ignore-installed -r requirements.txt
 
-After this, you should have ``scikit-image``, ``theano`` and ``lasagne`` installed in your virtual environment.  You'll also need to download this `pre-trained neural network <https://github.com/alexjc/neural-doodle/releases/download/v0.0/vgg19_conv.pkl.bz2>`_ (VGG19, 80Mb) for the script to run. Once you're done you can just delete the ``#/pyvenv/`` folder.
+After this, you should have ``scikit-image``, ``theano`` and ``lasagne`` installed in your virtual environment.  You'll also need to download this `pre-trained neural network <https://github.com/alexjc/neural-doodle/releases/download/v0.0/vgg19_conv.pkl.bz2>`_ (VGG19, 80Mb) and put it in the same folder as the script to run. Once you're done you can just delete the ``#/pyvenv/`` folder.
 
 .. image:: docs/Coastline_example.png
 

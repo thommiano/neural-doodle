@@ -119,11 +119,18 @@ class Model(object):
         net['pool3']   = PoolLayer(net['conv3_4'], 2, mode='average_exc_pad')
         net['conv4_1'] = ConvLayer(net['pool3'],   512, 3, pad=1)
         net['conv4_2'] = ConvLayer(net['conv4_1'], 512, 3, pad=1)
-        net['main']    = net['conv4_2']
+        net['conv4_3'] = ConvLayer(net['conv4_2'], 512, 3, pad=1)
+        net['conv4_4'] = ConvLayer(net['conv4_3'], 512, 3, pad=1)
+        net['pool4']   = PoolLayer(net['conv4_4'], 2, mode='average_exc_pad')
+        net['conv5_1'] = ConvLayer(net['pool4'],   512, 3, pad=1)
+        net['conv5_2'] = ConvLayer(net['conv5_1'], 512, 3, pad=1)
+        net['conv5_3'] = ConvLayer(net['conv5_2'], 512, 3, pad=1)
+        net['conv5_4'] = ConvLayer(net['conv5_3'], 512, 3, pad=1)
+        net['main']    = net['conv5_4']
 
         # Second network for the semantic layers.  This dynamically downsamples the map and concatenates it.
         net['map'] = InputLayer((1, 3, None, None))
-        net['map1_1'] = PoolLayer(net['map'], 2, mode='average_exc_pad')
+        net['map1_1'] = PoolLayer(net['map'], 1, mode='average_exc_pad')
         net['map2_1'] = PoolLayer(net['map'], 2, mode='average_exc_pad')
         net['map3_1'] = PoolLayer(net['map'], 4, mode='average_exc_pad')
         net['map4_1'] = PoolLayer(net['map'], 8, mode='average_exc_pad')

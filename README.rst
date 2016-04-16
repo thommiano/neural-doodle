@@ -4,16 +4,18 @@ Neural Doodle
 .. image:: docs/Workflow.gif
     :align: right
 
-Use a deep neural network to borrow the skills of real artists and turn your two-bit doodles into masterpieces! This project is an implementation of `Semantic Style Transfer <http://arxiv.org/abs/1603.01768>`_ (Champandard, 2016), based on the `Neural Patches <http://arxiv.org/abs/1601.04589>`_ algorithm (Li, 2016).
+Use a deep neural network to borrow the skills of real artists and turn your two-bit doodles into masterpieces! This project is an implementation of `Semantic Style Transfer <http://arxiv.org/abs/1603.01768>`_ (Champandard, 2016), based on the `Neural Patches <http://arxiv.org/abs/1601.04589>`_ algorithm (Li, 2016). Read more about the motivation in this **`in-depth article <https://nucl.ai/blog/neural-doodles/>`_** and watch this **`workflow video <https://www.youtube.com/watch?v=fu2fzx4w3mI>`_** for inspiration.
 
 The ``doodle.py`` script generates an image by using three or four images as inputs: the original style and its annotation, and a target content image (optional) with its annotation (a.k.a. your doodle). The algorithm then extracts annotated patches from the style image, and incrementally transfers them over to the target image based on how closely they match.
+
+NOTE: Making a ``#NeuralDoodle`` is a skill. The parameters in the script were adjusted to work well by default and with the examples below. For new images, you may need to adjust values and modify on your input data too. It's a skill, but you can reach almost photo-realistic results if you iterate!
 
 1. `Examples & Usage <#examples--usage>`_
 2. `Installation <#installation-setup>`_
 3. `Troubleshooting <#troubleshooting-problems>`_
 4. `Frequent Questions <#frequent-questions>`_
 
-**NOTE**: This project is possible thanks to the `nucl.ai Conference <http://nucl.ai/>`_ on **July 18-20**. Join us in **Vienna**!
+**NOTE**: This project is possible thanks to the `nucl.ai Conference <http://events.nucl.ai/>`_ on **July 18-20**. Join us in **Vienna**!
 
 |Python Version| |License Type| |Project Stars|
 

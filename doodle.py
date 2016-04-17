@@ -28,14 +28,16 @@ add_arg('--style-layers',   default='3_1,4_1', type=str,    help='The layers to 
 add_arg('--semantic-ext',   default='_sem.png', type=str,   help='File extension for the semantic maps.')
 add_arg('--semantic-weight', default=10.0, type=float,      help='Global weight of semantics vs. features.')
 add_arg('--output',         default='output.png', type=str, help='Output image path to save once done.')
-add_arg('--resolutions',    default=3, type=int,            help='Number of image scales to process.')
+add_arg('--output-size',    default=None, type=str,         help='Size of the output image, e.g. 512x512.')
+add_arg('--phases',         default=3, type=int,            help='Number of image scales to process in phases.')
 add_arg('--smoothness',     default=1E+0, type=float,       help='Weight of image smoothing scheme.')
 add_arg('--seed',           default='noise', type=str,      help='Seed image path, "noise" or "content".')
+add_arg('--seed-range',     default='16:240', type=str,     help='Random colors chosen in range, e.g. 0:255.')
 add_arg('--iterations',     default=100, type=int,          help='Number of iterations to run each resolution.')
 add_arg('--device',         default='cpu', type=str,        help='Index of the GPU number to use, for theano.')
 add_arg('--safe-mode',      default=0, action='store_true', help='Use conservative Theano setting to avoid problems.')
 add_arg('--print-every',    default=10, type=int,           help='How often to log statistics to stdout.')
-add_arg('--save-every',     default=10, type=int,            help='How frequently to save PNG into `frames`.')
+add_arg('--save-every',     default=10, type=int,           help='How frequently to save PNG into `frames`.')
 args = parser.parse_args()
 
 
@@ -210,13 +212,10 @@ class NeuralGenerator(object):
         target = args.content or args.output
         self.content_img_original, self.content_map_original = self.load_images('content', target)
         self.style_img_original, self.style_map_original = self.load_images('style', args.style)
-        print(ansi.ENDC, end='')
 
         if self.content_map_original is None and self.content_img_original is None:
-            basename, _ = os.path.splitext(target)
-            print("\n{}ERROR: Couldn't find either the target image or a valid semantic map.\n"\
-                  "{}  - Try creating the file `{}_sem.png` with your annotations.{}\n".format(ansi.RED_B, ansi.RED, basename, ansi.ENDC))
-            sys.exit(-1)
+            print("  - No content files found; result will be randomized.")
+        print(ansi.ENDC, end='')
 
         if self.style_img_original is None:
             print("\n{}ERROR: Couldn't find style image as expected.\n"\
@@ -236,7 +235,12 @@ class NeuralGenerator(object):
             sys.exit(-1)
 
         if self.content_map_original is None:
-            self.content_map_original = np.zeros(self.content_img_original.shape[:2]+(1,))
+            if self.content_img_original is None and args.output_size:
+                shape = [int(i) for i in args.output_size.split('x')]
+            else:
+                shape = self.style_img_original.shape[:2]
+
+            self.content_map_original = np.zeros(shape+(1,))
             args.semantic_weight = 0.0
 
         if self.style_map_original is None:
@@ -478,9 +482,9 @@ class NeuralGenerator(object):
         """
 
         self.frame = 0
-        for i in range(args.resolutions):
+        for i in range(args.phases):
             self.error = 255.0
-            scale = 1.0 / 2.0 ** (args.resolutions - 1 - i)
+            scale = 1.0 / 2.0 ** (args.phases - 1 - i)
 
             shape = self.content_img_original.shape
             print('\n{}Phase #{}: resolution {}x{}  scale {}{}'\
@@ -507,7 +511,8 @@ class NeuralGenerator(object):
             if args.seed == 'content':
                 Xn = self.content_image[0] + self.model.pixel_mean
             if args.seed == 'noise':
-                Xn = np.random.uniform(32, 224, shape + (3,)).astype(np.float32)
+                bounds = [int(i) for i in args.seed_range.split(':')]
+                Xn = np.random.uniform(bounds[0], bounds[1], shape + (3,)).astype(np.float32)
             if args.seed == 'previous':
                 Xn = scipy.misc.imresize(Xn[0], shape)
                 Xn = Xn.transpose((2, 0, 1))[np.newaxis]

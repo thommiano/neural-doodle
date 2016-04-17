@@ -8,14 +8,14 @@ Use a deep neural network to borrow the skills of real artists and turn your two
 
 The ``doodle.py`` script generates an image by using three or four images as inputs: the original style and its annotation, and a target content image (optional) with its annotation (a.k.a. your doodle). The algorithm then extracts annotated patches from the style image, and incrementally transfers them over to the target image based on how closely they match.
 
-NOTE: Making a ``#NeuralDoodle`` is a skill. The parameters in the script were adjusted to work well by default and with the examples below. For new images, you may need to adjust values and modify on your input data too. It's a skill, but you can reach almost photo-realistic results if you iterate!
+**NOTE**: Making a ``#NeuralDoodle`` is a skill. The parameters in the script were adjusted to work well by default and with the examples below. For new images, you may need to adjust values and modify on your input data too. It's a skill, but you can reach almost photo-realistic results if you iterate!
 
 1. `Examples & Usage <#examples--usage>`_
 2. `Installation <#installation-setup>`_
 3. `Troubleshooting <#troubleshooting-problems>`_
 4. `Frequent Questions <#frequent-questions>`_
 
-**NOTE**: This project is possible thanks to the `nucl.ai Conference <http://events.nucl.ai/>`_ on **July 18-20**. Join us in **Vienna**!
+**IMPORTANT**: This project is possible thanks to the `nucl.ai Conference <http://events.nucl.ai/>`_ on **July 18-20**. Join us in **Vienna**!
 
 |Python Version| |License Type| |Project Stars|
 
@@ -60,16 +60,36 @@ If you want to transfer the style given a source style with annotations, and a t
 
     # Synthesize a portrait of Seth Johnson like a Gogh portrait. This uses "*_sem.png" masks for both images.
     python3 doodle.py --style samples/Gogh.jpg --content samples/Seth.png \
-                      --output SethAsGogh.png --device=cpu --resolutions=4 --iterations=40
+                      --output SethAsGogh.png --device=cpu --phases=4 --iterations=40
 
     # Generate what a photo of Vincent van Gogh would look like, using Seth's portrait as reference.
     python3 doodle.py --style samples/Seth.jpg --content samples/Gogh.png \
-                      --output GoghAsSeth.png --device=gpu0 --resolutions=4 --iterations=80
+                      --output GoghAsSeth.png --device=gpu0 --phases=4 --iterations=80
 
 To perform regular style transfer without semantic annotations, simply delete or rename the files with the semantic maps.  The photo is originally by `Seth Johnson <http://sethjohnson.tumblr.com/post/655063019/this-was-a-project-for-an-art-history-class-turns>`_, and the concept for this style transfer by `Kyle McDonald <https://twitter.com/kcimc>`_.
 
 
 .. image:: docs/Portraits_example.jpg
+
+
+Texture Generation
+------------------
+
+For synthesizing bitmap textures, you only need an input style without anotations and without target output.  In this case, you simply specify one input style image and the output file as follows:
+
+.. code:: bash
+
+    # First synthesis uses a darker noise pattern as seed.
+    python3 doodle.py --style samples/Wall.jpg --output Wall.png\
+                      --seed=noise --seed-range=0:128 --iterations=50 --phases=3
+
+    # Second synthesis uses a lighter noise pattern as seed.
+    python3 doodle.py --style samples/Wall.jpg --output Wall.png\
+                      --seed=noise --seed-range=192:255 --iterations=50 --phases=3
+
+You can also control the output resolution using ``--output-size=512x512`` parameter—which also depends on the memory you have available. By default the size will be the same as the style image.
+
+.. image:: docs/Textures_example.jpg
 
 
 Script Parameters
@@ -91,9 +111,9 @@ Installation & Setup
 
 This project requires Python 3.4+ and you'll also need ``numpy`` and ``scipy`` (numerical computing libraries) as well as ``python3-dev`` installed system-wide.  If you want more detailed instructions, follow these:
 
-1. **`Linux Installation of Lasagne <https://github.com/Lasagne/Lasagne/wiki/From-Zero-to-Lasagne-on-Ubuntu-14.04>`_ (recommended)**
-2. **`Mac OSX Installation of Lasagne <http://deeplearning.net/software/theano/install.html#mac-os>`_ (intermediate)**
-3. **`Windows Installation of Lasagne <https://github.com/Lasagne/Lasagne/wiki/From-Zero-to-Lasagne-on-Windows-7-%2864-bit%29>`_ (expert)**
+1. `Linux Installation of Lasagne <https://github.com/Lasagne/Lasagne/wiki/From-Zero-to-Lasagne-on-Ubuntu-14.04>`_ **(recommended)**
+2. `Mac OSX Installation of Lasagne <http://deeplearning.net/software/theano/install.html#mac-os>`_ **(intermediate)**
+3. `Windows Installation of Lasagne <https://github.com/Lasagne/Lasagne/wiki/From-Zero-to-Lasagne-on-Windows-7-%2864-bit%29>`_ **(expert)**
 
 Afterward fetching the repository, you can run the following commands from your terminal to setup a local environment:
 

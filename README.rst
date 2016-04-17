@@ -71,8 +71,8 @@ To perform regular style transfer without semantic annotations, simply delete or
 .. image:: docs/Portraits_example.jpg
 
 
-Texture Generation
-------------------
+Texture Synthesis
+-----------------
 
 For synthesizing bitmap textures, you only need an input style without anotations and without target output.  In this case, you simply specify one input style image and the output file as follows:
 

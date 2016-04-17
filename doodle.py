@@ -215,7 +215,7 @@ class NeuralGenerator(object):
         self.style_img_original, self.style_map_original = self.load_images('style', args.style)
 
         if self.content_map_original is None and self.content_img_original is None:
-            print("  - No content files found; result will be randomized.")
+            print("  - No content files found; result depends on seed only.")
         print(ansi.ENDC, end='')
 
         if self.style_img_original is None:
@@ -237,7 +237,7 @@ class NeuralGenerator(object):
 
         if self.content_map_original is None:
             if self.content_img_original is None and args.output_size:
-                shape = [int(i) for i in args.output_size.split('x')]
+                shape = tuple([int(i) for i in args.output_size.split('x')])
             else:
                 shape = self.style_img_original.shape[:2]
 

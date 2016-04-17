@@ -110,6 +110,7 @@ Installation & Setup
 
 This project requires Python 3.4+ and you'll also need ``numpy`` and ``scipy`` (numerical computing libraries) as well as ``python3-dev`` installed system-wide.  If you want more detailed instructions, follow these:
 
+0. Use Pre-Installed `Docker Container <https://github.com/alexjc/neural-doodle/issues/61>`_ or `Amazon Image <https://github.com/alexjc/neural-doodle/issues/54>`_ (beginner).
 1. `Linux Installation of Lasagne <https://github.com/Lasagne/Lasagne/wiki/From-Zero-to-Lasagne-on-Ubuntu-14.04>`_ **(recommended)**
 2. `Mac OSX Installation of Lasagne <http://deeplearning.net/software/theano/install.html#mac-os>`_ **(intermediate)**
 3. `Windows Installation of Lasagne <https://github.com/Lasagne/Lasagne/wiki/From-Zero-to-Lasagne-on-Windows-7-%2864-bit%29>`_ **(expert)**

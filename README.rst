@@ -26,7 +26,7 @@ The ``doodle.py`` script generates an image by using three or four images as inp
 Examples & Usage
 ================
 
-Note the ``--device`` argument that lets you specify which GPU or CPU to use. For the samples above, here are the performance results:
+The main script is called ``doodle.py``, which you can run with Python 3.4+.  The ``--device`` argument that lets you specify which GPU or CPU to use. For the samples above, here are the performance results:
 
 * **GPU Rendering** — Assuming you have CUDA setup and enough on-board RAM, the process should complete in 3 to 8 minutes, even with twice the iteration count.
 * **CPU Rendering** — This will take hours and hours, even up to 12h on older hardware. To match quality it'd take twice the time. Do multiple runs in parallel!
@@ -67,7 +67,6 @@ If you want to transfer the style given a source style with annotations, and a t
                       --output GoghAsSeth.png --device=gpu0 --phases=4 --iterations=80
 
 To perform regular style transfer without semantic annotations, simply delete or rename the files with the semantic maps.  The photo is originally by `Seth Johnson <http://sethjohnson.tumblr.com/post/655063019/this-was-a-project-for-an-art-history-class-turns>`_, and the concept for this style transfer by `Kyle McDonald <https://twitter.com/kcimc>`_.
-
 
 .. image:: docs/Portraits_example.jpg
 

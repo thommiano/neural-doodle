@@ -1,7 +1,7 @@
 #
 # Copyright (c) 2016, Alex J. Champandard.
-# 
-# Research and development sponsored by the nucl.ai Conference!
+#
+# Research and Development sponsored by the nucl.ai Conference!
 #   http://events.nucl.ai/
 #   July 18-20, 2016 in Vienna/Austria.
 #
@@ -148,13 +148,14 @@ class Model(object):
         """Open the serialized parameters from a pre-trained network, and load them into the model created.
         """
 
-        if not os.path.exists('vgg19_conv.pkl.bz2'):
+        vgg19_file = os.path.join(os.path.dirname(__file__), 'vgg19_conv.pkl.bz2')
+        if not os.path.exists(vgg19_file):
             print("{}ERROR: Model file with pre-trained convolution layers not found. Download here:{}\n"\
                   "https://github.com/alexjc/neural-doodle/releases/download/v0.0/vgg19_conv.pkl.bz2{}\n"\
             .format(ansi.RED_B, ansi.RED, ansi.ENDC))
             sys.exit(-1)
 
-        data = pickle.load(bz2.open('vgg19_conv.pkl.bz2', 'rb'))
+        data = pickle.load(bz2.open(vgg19_file, 'rb'))
         params = lasagne.layers.get_all_param_values(self.network['main'])
         lasagne.layers.set_all_param_values(self.network['main'], data[:len(params)])
 
@@ -184,9 +185,9 @@ class Model(object):
         to disk -- shuffling dimensions as appropriate.
         """
 
-        image = image.reshape(resolution)[::-1]
-        image = np.swapaxes(np.swapaxes(image, 0, 1), 1, 2)
-        return np.clip(image, 0, 255).astype('uint8')
+        image = np.swapaxes(np.swapaxes(image[::-1], 0, 1), 1, 2)
+        image = np.clip(image, 0, 255).astype('uint8')
+        return scipy.misc.imresize(image, resolution, interp='bicubic')
 
 
 #----------------------------------------------------------------------------------------------------------------------
@@ -454,8 +455,9 @@ class NeuralGenerator(object):
 
         # Dump the image to disk if requested by the user.
         if args.save_every and self.frame % args.save_every == 0:
-            resolution = self.content_image.shape[1:]
-            image = scipy.misc.toimage(self.model.finalize_image(Xn, resolution), cmin=0, cmax=255)
+            frame = Xn.reshape(self.content_image.shape[1:])
+            resolution = self.content_img_original.shape
+            image = scipy.misc.toimage(self.model.finalize_image(frame, resolution), cmin=0, cmax=255)
             image.save('frames/%04d.png'%self.frame)
 
         # Print more information to the console every few iterations.
@@ -514,7 +516,7 @@ class NeuralGenerator(object):
                 bounds = [int(i) for i in args.seed_range.split(':')]
                 Xn = np.random.uniform(bounds[0], bounds[1], shape + (3,)).astype(np.float32)
             if args.seed == 'previous':
-                Xn = scipy.misc.imresize(Xn[0], shape)
+                Xn = scipy.misc.imresize(Xn[0], shape, interp='bicubic')
                 Xn = Xn.transpose((2, 0, 1))[np.newaxis]
 
             # Optimization algorithm needs min and max bounds to prevent divergence.
@@ -527,7 +529,7 @@ class NeuralGenerator(object):
                                 Xn.astype(np.float64).flatten(),
                                 bounds=data_bounds,
                                 factr=0.0, pgtol=0.0,            # Disable automatic termination, set low threshold.
-                                m=4,                             # Maximum correlations kept in memory by algorithm. 
+                                m=5,                             # Maximum correlations kept in memory by algorithm.
                                 maxfun=args.iterations-1,        # Limit number of calls to evaluate().
                                 iprint=-1)                       # Handle our own logging of information.
             except OverflowError:
@@ -539,7 +541,9 @@ class NeuralGenerator(object):
             args.seed = 'previous'
             resolution = self.content_image.shape
             Xn = Xn.reshape(resolution)
-            scipy.misc.toimage(self.model.finalize_image(Xn, resolution[1:]), cmin=0, cmax=255).save(args.output)
+
+            output = self.model.finalize_image(Xn[0], self.content_img_original.shape)
+            scipy.misc.toimage(output, cmin=0, cmax=255).save(args.output)
 
 
 if __name__ == "__main__":

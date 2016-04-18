@@ -520,6 +520,7 @@ class NeuralGenerator(object):
                 Xn = Xn.transpose((2, 0, 1))[np.newaxis]
             if os.path.exists(args.seed):
                 seed_image = scipy.ndimage.imread(args.seed, mode='RGB')
+                seed_image = scipy.misc.imresize(seed_image, shape, interp='bicubic')
                 self.seed_image = self.model.prepare_image(seed_image)
                 Xn = self.seed_image[0] + self.model.pixel_mean
 

@@ -518,6 +518,10 @@ class NeuralGenerator(object):
             if args.seed == 'previous':
                 Xn = scipy.misc.imresize(Xn[0], shape, interp='bicubic')
                 Xn = Xn.transpose((2, 0, 1))[np.newaxis]
+            if os.path.exists(args.seed):
+                seed_image = scipy.ndimage.imread(args.seed, mode='RGB')
+                self.seed_image = self.model.prepare_image(seed_image)
+                Xn = self.seed_image[0] + self.model.pixel_mean
 
             # Optimization algorithm needs min and max bounds to prevent divergence.
             data_bounds = np.zeros((np.product(Xn.shape), 2), dtype=np.float64)

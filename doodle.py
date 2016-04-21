@@ -422,9 +422,13 @@ class NeuralGenerator(object):
             else:
                 sem = 1.0
 
-            # Pick the best style patches for each patch in the current image, the result is an array of indices.
+            # Determine the score matrix matching patches in the current image to the style patches, each weighted
+            # by semantic map. This is the result of normalized cross correlation, so range is [0.0, 1.0].
             scores = dist + args.semantic_weight * sem
+            # Measure the best score of each style patch, to see if it has found its place in the current image.
             offset = scores.max(axis=1).reshape((-1,1)) if args.variety else 0.0
+            # Compute matching patch indices from the scores, but leveling the playing field based on the `variety`
+            # parameter specified by the user.
             matches = (scores - offset * args.variety).argmax(axis=0)
 
             # Compute the mean squared error between the current patch and the best matching style patch.

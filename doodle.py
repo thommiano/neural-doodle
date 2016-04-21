@@ -415,7 +415,7 @@ class NeuralGenerator(object):
             dist = self.model.tensor_outputs['nn'+l]
             dist = dist.reshape((dist.shape[1], -1)) / norms.reshape((1,-1)) / layer.N.reshape((-1,1))
 
-            if args.semantic_weight:
+            if args.semantic_weight > 0.0:
                 sem_layer = self.model.network['mm'+l]
                 sem = self.model.tensor_outputs['mm'+l]
                 sem = sem.reshape((sem.shape[1], -1)) / sem_norms.reshape((1,-1)) / sem_layer.N.reshape((-1,1))

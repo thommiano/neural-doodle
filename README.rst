@@ -6,16 +6,16 @@ Neural Doodle
 
 Use a deep neural network to borrow the skills of real artists and turn your two-bit doodles into masterpieces! This project is an implementation of `Semantic Style Transfer <http://arxiv.org/abs/1603.01768>`_ (Champandard, 2016), based on the `Neural Patches <http://arxiv.org/abs/1601.04589>`_ algorithm (Li, 2016). Read more about the motivation in this `in-depth article <https://nucl.ai/blog/neural-doodles/>`_ and watch this `workflow video <https://www.youtube.com/watch?v=fu2fzx4w3mI>`_ for inspiration.
 
-The ``doodle.py`` script generates an image by using three or four images as inputs: the original style and its annotation, and a target content image (optional) with its annotation (a.k.a. your doodle). The algorithm then extracts annotated patches from the style image, and incrementally transfers them over to the target image based on how closely they match.
+The ``doodle.py`` script generates a new image by using one, two, three or four images as inputs depending what you're trying to do: the original style and its annotation, and a target content image (optional) with its annotation (a.k.a. your doodle). The algorithm extracts annotated patches from the style image, and incrementally transfers them over to the target image based on how closely they match.
 
-**NOTE**: Making a ``#NeuralDoodle`` is a skill. The parameters in the script were adjusted to work well by default and with the examples below. For new images, you may need to adjust values and modify on your input data too. It's a skill, but you can reach almost photo-realistic results if you iterate!
+**NOTE**: Making a ``#NeuralDoodle`` is a skill. The parameters in the script were adjusted to work well by default and with the examples below. For new images, you may need to adjust values and modify on your input data too. It takes practice, but you can reach almost photo-realistic results if you iterate! (`Ask for advice here or see examples <https://github.com/alexjc/neural-doodle/issues?q=label%3Aadvice>`_.)
 
 1. `Examples & Usage <#examples--usage>`_
 2. `Installation <#installation-setup>`_
 3. `Troubleshooting <#troubleshooting-problems>`_
 4. `Frequent Questions <#frequent-questions>`_
 
-**IMPORTANT**: This project is possible thanks to the `nucl.ai Conference <http://events.nucl.ai/>`_ on **July 18-20**. Join us in **Vienna**!
+**IMPORTANT**: This project is possible thanks to the `nucl.ai Conference <http://events.nucl.ai/>`_ on Creative AI, **July 18-20**. Join us in **Vienna**!
 
 |Python Version| |License Type| |Project Stars|
 
@@ -23,18 +23,18 @@ The ``doodle.py`` script generates an image by using three or four images as inp
 
 .. image:: docs/Landscape_example.png
 
-Examples & Usage
-================
+1. Examples & Usage
+===================
 
-The main script is called ``doodle.py``, which you can run with Python 3.4+.  The ``--device`` argument that lets you specify which GPU or CPU to use. For the samples above, here are the performance results:
+The main script is called ``doodle.py``, which you can run with Python 3.4+ (see setup below).  The ``--device`` argument that lets you specify which GPU or CPU to use. For the samples above, here are the performance results:
 
 * **GPU Rendering** — Assuming you have CUDA setup and enough on-board RAM, the process should complete in 3 to 8 minutes, even with twice the iteration count.
 * **CPU Rendering** — This will take hours and hours, even up to 12h on older hardware. To match quality it'd take twice the time. Do multiple runs in parallel!
 
 The default is to use ``cpu``, if you have NVIDIA card setup with CUDA already try ``gpu0``. On the CPU, you can also set environment variable to ``OMP_NUM_THREADS=4``, but we've found the speed improvements to be minimal.
 
-Image Analogy
--------------
+1.a) Image Analogy
+------------------
 
 The algorithm is built for style transfer, but can also generate image analogies that we call a ``#NeuralDoodle``; use the hashtag if you post your images!  Example files are included in the ``#/samples/`` folder. Execute with these commands:
 
@@ -51,8 +51,8 @@ The algorithm is built for style transfer, but can also generate image analogies
 Notice the Renoir results look a little better than the Monet. Some rotational variations of the source image could improve the quality of the arch outline in particular.
 
 
-Style Transfer
---------------
+1.b) Style Transfer
+-------------------
 
 If you want to transfer the style given a source style with annotations, and a target content image with annotations, you can use the following command lines.  In all cases, the semantic map is loaded and used if it's found under the ``*_sem.png`` filename that matches the input file.
 
@@ -71,8 +71,8 @@ To perform regular style transfer without semantic annotations, simply delete or
 .. image:: docs/Portraits_example.jpg
 
 
-Texture Synthesis
------------------
+1.c) Texture Synthesis
+----------------------
 
 For synthesizing bitmap textures, you only need an input style without anotations and without target output.  In this case, you simply specify one input style image and the output file as follows:
 
@@ -91,8 +91,8 @@ You can also control the output resolution using ``--output-size=512x512`` param
 .. image:: docs/Textures_example.jpg
 
 
-Script Parameters
------------------
+1.d) Script Parameters
+----------------------
 
 You can configure the algorithm using the following parameters. Type ``python3 doodle.py --help`` for the full list of options, or see the source code.
 
@@ -105,8 +105,8 @@ You can configure the algorithm using the following parameters. Type ``python3 d
 * ``--save-every=10`` — How frequently to save PNG into `frames`.
 
 
-Installation & Setup
-====================
+2. Installation & Setup
+=======================
 
 This project requires Python 3.4+ and you'll also need ``numpy`` and ``scipy`` (numerical computing libraries) as well as ``python3-dev`` installed system-wide.  If you want more detailed instructions, follow these:
 
@@ -133,8 +133,8 @@ After this, you should have ``scikit-image``, ``theano`` and ``lasagne`` install
 .. image:: docs/Coastline_example.png
 
 
-Troubleshooting Problems
-========================
+3. Troubleshooting Problems
+===========================
 
 It's running out of GPU Ram, throwing ``MemoryError``. Help!
 ------------------------------------------------------------
@@ -207,35 +207,25 @@ It's possible there's a platform bug in the underlying libraries or compiler, wh
 **FIX:** Use ``--safe-mode`` flag to disable optimizations.
 
 
-Frequent Questions
-==================
+4. Frequent Questions
+=====================
 
 Q: When will this be possible in realtime? I want it as filter!
 ---------------------------------------------------------------
 
-Currently these techniques are only production ready if you're willing to deploy a GPU farm for the rendering. This is easier and cheaper than you might think considering the benefits!
+Related algorithms have shown this is possible in realtime—if you're willing to accept slightly lower quality:
 
-To improve the performance of `patch-based algorithms <http://arxiv.org/abs/1601.04589>`_, significant additional research is required to modify the brute-force nearest neighbor matching of patches. `DeepForger <https://twitter.com/DeepForger>`_ has some of these performance improvements, but there's a long way to go and making sure it works faster without losing quality is a challenge.
+* `Texture Networks: Feed-forward Synthesis of Textures and Stylized Images <http://arxiv.org/abs/1603.03417>`_
+* `Perceptual Losses for Real-Time Style Transfer and Super-Resolution <http://arxiv.org/abs/1603.08155>`_
+* `Precomputed Real-Time Texture Synthesis with Markovian Generative Adversarial Networks <http://arxiv.org/abs/1604.04382>`_
 
-It's likely these techniques will be good enough for an iterative workflow in 6-12 months. This would only require some engineering tricks (e.g. reusing previously synthesized images) rather than fundamental algorithm changes.
+This project is not designed for real-time use, the focus is on quality.  The code in this repository is ideal for training realtime capable networks. 
 
+Q: Is there an application for this? I want to download it!
+-----------------------------------------------------------
 
-Q: How is semantic style transfer different to neural analogies?
-----------------------------------------------------------------
+There are many online services that provide basic style transfer with neural networks. We run `@DeepForger <https://deepforger.com/>`_, a Twitter & Facebook bot with web interface, that can take your requests too.  It takes time to make forgeries, so there's a queue... be patient!
 
-It's still too early to say definitively, both approaches were discovered independently in 2016 by `@alexjc <https://twitter.com/alexjc>`_ and `@awentzonline <https://twitter.com/awentzonline>`_ (respectively). Here are some early impressions:
-
-1. One algorithm is style transfer that happens to do analogies, and the other is analogies that happens to do style transfer now. Adam extended his implementation to use a content loss after the `Semantic Style Transfer <http://arxiv.org/abs/1603.01768>`_ paper was published, so now they're even more similar under the hood!
-
-2. Both use a `patch-based approach <http://arxiv.org/abs/1601.04589>`_ (Li, 2016) but semantic style transfer imposes a "prior" via the patch-selection process and neural analogies has an additional prior on the convolution activations.  The outputs for both algorithms are a little different, it's not yet clear where each one is best.
-
-3. Semantic style transfer is simpler, it has fewer loss components.  This means somewhat less code to write and there are **fewer parameters involved** (not necessarily positive or negative).  Neural analogies is a little more complex, with as many parameters as the combination of two algorithms.
-
-4. Neural analogies is designed to work with images, and can only support the RGB format for its masks. Semantic style transfer was designed to **integrate with other neural networks** (for pixel labeling and semantic segmentation), and can use any format for its maps, including RGBA or many channels per label masks.
-
-5. Semantic style transfer is **about 25% faster and uses less memory** too.  For neural analogies, the extra computation is effectively the analogy prior — which could improve the quality of the results in theory. In practice, it's hard to tell at this stage and more testing is needed.
-
-If you have any comparisons or insights, be sure to let us know!
 
 ----
 

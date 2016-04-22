@@ -9,6 +9,7 @@
 import os
 import sys
 import bz2
+import time
 import pickle
 import argparse
 import itertools
@@ -151,7 +152,7 @@ class Model(object):
 
         vgg19_file = os.path.join(os.path.dirname(__file__), 'vgg19_conv.pkl.bz2')
         if not os.path.exists(vgg19_file):
-            print("{}ERROR: Model file with pre-trained convolution layers not found. Download here:{}\n"\
+            print("\n{}ERROR: Model file with pre-trained convolution layers not found. Download here...{}\n"\
                   "https://github.com/alexjc/neural-doodle/releases/download/v0.0/vgg19_conv.pkl.bz2{}\n"\
             .format(ansi.RED_B, ansi.RED, ansi.ENDC))
             sys.exit(-1)
@@ -200,6 +201,7 @@ class NeuralGenerator(object):
     """
 
     def __init__(self):
+        self.start_time = time.time()
         self.model = Model()
 
         self.style_layers = args.style_layers.split(',')
@@ -266,8 +268,8 @@ class NeuralGenerator(object):
         img = scipy.ndimage.imread(filename, mode='RGB') if os.path.exists(filename) else None
         map = scipy.ndimage.imread(mapname) if os.path.exists(mapname) else None
         
-        if img is not None: print('  - Loading {} image data from {}.'.format(name, filename))
-        if map is not None: print('  - Loading {} semantic map from {}.'.format(name, mapname))
+        if img is not None: print('  - Loading `{}` for {} data.'.format(filename, name))
+        if map is not None: print('  - Loading `{}` as its semantic map.'.format(map))
         
         if img is not None and map is not None and img.shape[:2] != map.shape[:2]:
             print("\n{}ERROR: The {} image and its semantic map have different resolutions. Either:\n"\
@@ -461,8 +463,8 @@ class NeuralGenerator(object):
         if np.isnan(grads).any():
             raise OverflowError("Optimization diverged; try using different device or parameters.")
 
-        # Use gradients as an estimate for overall quality.
-        self.error = self.error * 0.9 + 0.1 * np.abs(grads).max()
+        # Use magnitude of gradients as an estimate for overall quality.
+        self.error = self.error * 0.9 + 0.1 * min(np.abs(grads).max(), 255.0)
         loss = sum(losses)
 
         # Dump the image to disk if requested by the user.
@@ -484,8 +486,11 @@ class NeuralGenerator(object):
                     category = l[0]
                 print(' {}{}{} {:8.2e} '.format(ansi.BOLD, l[1], ansi.ENDC, v / 1000.0), end='')
 
+            current_time = time.time()
             quality = 100.0 - 100.0 * np.sqrt(self.error / 255.0)
-            print('  {}quality{} {:3.1f}% '.format(ansi.BOLD, ansi.ENDC, quality, flush=True))
+            print('  {}quality{} {: >4.1f}% '.format(ansi.BOLD, ansi.ENDC, quality), end='')
+            print('  {}time{} {:3.1f}s '.format(ansi.BOLD, ansi.ENDC, current_time - self.iter_time), flush=True)
+            self.iter_time = current_time
 
         # Return the data in the right format for L-BFGS.
         self.frame += 1
@@ -521,7 +526,7 @@ class NeuralGenerator(object):
             print('{}'.format(ansi.ENDC))
 
             # Setup the seed for the optimization as specified by the user.
-            shape = self.content_image.shape[2:]
+            shape, Xn = self.content_image.shape[2:], None
             if args.seed == 'content':
                 Xn = self.content_image[0] + self.model.pixel_mean
             if args.seed == 'noise':
@@ -535,11 +540,17 @@ class NeuralGenerator(object):
                 seed_image = scipy.misc.imresize(seed_image, shape, interp='bicubic')
                 self.seed_image = self.model.prepare_image(seed_image)
                 Xn = self.seed_image[0] + self.model.pixel_mean
+            if Xn is None:
+                print("{}ERROR: Seed for optimization was not found. You can either...{}\n"\
+                      "  - Set the `--seed` to `content` or `noise`.\n"\
+                      "  - Specify `--seed` as a valid filename.{}\n".format(ansi.RED_B, ansi.RED, ansi.ENDC))
+                sys.exit(-1)
 
             # Optimization algorithm needs min and max bounds to prevent divergence.
             data_bounds = np.zeros((np.product(Xn.shape), 2), dtype=np.float64)
             data_bounds[:] = (0.0, 255.0)
 
+            self.iter_time = time.time()
             try:
                 Xn, Vn, info = scipy.optimize.fmin_l_bfgs_b(
                                 self.evaluate,
@@ -561,6 +572,9 @@ class NeuralGenerator(object):
 
             output = self.model.finalize_image(Xn[0], self.content_img_original.shape)
             scipy.misc.toimage(output, cmin=0, cmax=255).save(args.output)
+
+        print('\n{}Optimization finished in {:3.1f}s, average pixel error {:3.1f}!{}\n'\
+              .format(ansi.CYAN, time.time() - self.start_time, self.error, ansi.ENDC))
 
 
 if __name__ == "__main__":

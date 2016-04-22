@@ -1,4 +1,6 @@
+#!/usr/bin/env python3
 #
+# Neural Doodle!
 # Copyright (c) 2016, Alex J. Champandard.
 #
 # Research and Development sponsored by the nucl.ai Conference!
@@ -32,7 +34,7 @@ add_arg('--output',         default='output.png', type=str, help='Output image p
 add_arg('--output-size',    default=None, type=str,         help='Size of the output image, e.g. 512x512.')
 add_arg('--phases',         default=3, type=int,            help='Number of image scales to process in phases.')
 add_arg('--smoothness',     default=1E+0, type=float,       help='Weight of image smoothing scheme.')
-add_arg('--variety',        default=0.0, type=float,        help='Bias toward more diverse patch selection.')
+add_arg('--variety',        default=0.0, type=float,        help='Bias toward selecting diverse patches, e.g. 0.5.')
 add_arg('--seed',           default='noise', type=str,      help='Seed image path, "noise" or "content".')
 add_arg('--seed-range',     default='16:240', type=str,     help='Random colors chosen in range, e.g. 0:255.')
 add_arg('--iterations',     default=100, type=int,          help='Number of iterations to run each resolution.')
@@ -267,10 +269,10 @@ class NeuralGenerator(object):
         mapname = basename + args.semantic_ext
         img = scipy.ndimage.imread(filename, mode='RGB') if os.path.exists(filename) else None
         map = scipy.ndimage.imread(mapname) if os.path.exists(mapname) else None
-        
+
         if img is not None: print('  - Loading `{}` for {} data.'.format(filename, name))
         if map is not None: print('  - Loading `{}` as its semantic map.'.format(map))
-        
+
         if img is not None and map is not None and img.shape[:2] != map.shape[:2]:
             print("\n{}ERROR: The {} image and its semantic map have different resolutions. Either:\n"\
                   "{}  - Resize {} to {}, or\n  - Resize {} to {}.\n"\

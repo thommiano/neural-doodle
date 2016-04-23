@@ -271,7 +271,7 @@ class NeuralGenerator(object):
         map = scipy.ndimage.imread(mapname) if os.path.exists(mapname) else None
 
         if img is not None: print('  - Loading `{}` for {} data.'.format(filename, name))
-        if map is not None: print('  - Loading `{}` as its semantic map.'.format(map))
+        if map is not None: print('  - Loading `{}` as its semantic map.'.format(mapname))
 
         if img is not None and map is not None and img.shape[:2] != map.shape[:2]:
             print("\n{}ERROR: The {} image and its semantic map have different resolutions. Either:\n"\
@@ -502,7 +502,7 @@ class NeuralGenerator(object):
         """The main entry point for the application, runs through multiple phases at increasing resolutions.
         """
 
-        self.frame = 0
+        self.frame, Xn = 0, None
         for i in range(args.phases):
             self.error = 255.0
             scale = 1.0 / 2.0 ** (args.phases - 1 - i)
@@ -528,7 +528,7 @@ class NeuralGenerator(object):
             print('{}'.format(ansi.ENDC))
 
             # Setup the seed for the optimization as specified by the user.
-            shape, Xn = self.content_image.shape[2:], None
+            shape = self.content_image.shape[2:]
             if args.seed == 'content':
                 Xn = self.content_image[0] + self.model.pixel_mean
             if args.seed == 'noise':

@@ -11,6 +11,7 @@
 import os
 import sys
 import bz2
+import math
 import time
 import pickle
 import argparse
@@ -61,7 +62,7 @@ class ansi:
     ENDC = '\033[0m'
     
 def error(message, *lines):
-    string = "\n{}ERROR: " + message + "{}" + "\n".join(lines) + "{}\n"
+    string = "\n{}ERROR: " + message + "{}\n" + "\n".join(lines) + "{}\n"
     print(string.format(ansi.RED_B, ansi.RED, ansi.ENDC))
     sys.exit(-1)
 
@@ -310,10 +311,10 @@ class NeuralGenerator(object):
         result = extractor(self.style_image, self.style_map)
 
         self.style_data = {}
-        for layer, *data in zip(self.style_layers, result[0::2], result[1::2]):
+        for layer, *data in zip(self.style_layers, result[0::3], result[1::3], result[2::3]):
             l, patches = self.model.network['nn'+layer], data[0]
             l.num_filters = patches.shape[0] # TODO: This is the number of slices.
-            self.style_data[layer] = data
+            self.style_data[layer] = [d.astype(np.float16) for d in data]
             print('  - Style layer {}: {} patches in {:,}kb.'.format(layer, patches.shape[0], patches.size//1000))
 
 
@@ -331,8 +332,9 @@ class NeuralGenerator(object):
             patches = patches.reshape((-1, patches.shape[0] // f.shape[1], size, size)).dimshuffle((1, 0, 2, 3))
 
             # Calculate the magnitude that we'll use for normalization at runtime, then store...
-            norms = T.sqrt(T.sum(patches ** 2.0, axis=(1,), keepdims=True))
-            results.extend([patches, norms])
+            norms_m = T.sqrt(T.sum(patches[:,:-3] ** 2.0, axis=(1,), keepdims=True))
+            norms_s = T.sqrt(T.sum(patches[:,-3:] ** 2.0, axis=(1,), keepdims=True))
+            results.extend([patches, norms_m, norms_s])
         return results
 
     def prepare_optimization(self):
@@ -413,7 +415,7 @@ class NeuralGenerator(object):
         result = self.do_extract_patches([self.model.tensor_outputs['sem'+l] for l in self.style_layers])
 
         # Multiple style layers are optimized separately, usually sem3_1 and sem4_1.
-        for l, matches, patches in zip(self.style_layers, self.tensor_matches, result[0::2]):
+        for l, matches, patches in zip(self.style_layers, self.tensor_matches, result[0::3]):
             # Compute the mean squared error between the current patch and the best matching style patch.
             # Ignore the last channels (from semantic map) so errors returned are indicative of image only.
             channels = self.style_map_original.shape[2]
@@ -443,14 +445,25 @@ class NeuralGenerator(object):
         current_features = self.compute_features(current_img, self.content_map)
 
         # Iterate through each of the style layers one by one, computing best matches.
-        current_best = []
+        current_best, semantic_weight = [], math.sqrt(args.semantic_weight)
+        assert semantic_weight > 0.0
+
         for l, f in zip(self.style_layers, current_features):
             layer = self.model.network['nn'+l]
-            patches, norms = self.style_data[l]
-            layer.W.set_value(patches / (3.0 * norms))
+            patches, norms_m, norms_s = self.style_data[l]
 
-            n = np.sqrt(np.sum(f ** 2.0, axis=(1,), keepdims=True))
-            best, cost = self.compute_matches[l](f / (3.0 * n))
+            patches = patches.astype(np.float32)
+            patches[:,:-3] /= (3.0 * norms_m.astype(np.float32))
+            patches[:,-3:] /= (3.0 * norms_s.astype(np.float32) * semantic_weight)
+            layer.W.set_value(patches)
+
+            nm = np.sqrt(np.sum(f[:,:-3] ** 2.0, axis=(1,), keepdims=True))
+            ns = np.sqrt(np.sum(f[:,-3:] ** 2.0, axis=(1,), keepdims=True))
+
+            f[:,:-3] /= (3.0 * nm) # TODO: Use exact number of channels.
+            f[:,-3:] /= (3.0 * ns * semantic_weight)
+
+            best, cost = self.compute_matches[l](f)
             current_best.append(patches[best])
 
         grads, *losses = self.compute_grad_and_losses(current_img, self.content_map, *current_best)

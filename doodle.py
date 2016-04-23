@@ -158,7 +158,7 @@ class Model(object):
         vgg19_file = os.path.join(os.path.dirname(__file__), 'vgg19_conv.pkl.bz2')
         if not os.path.exists(vgg19_file):
             error("Model file with pre-trained convolution layers not found. Download here...",
-                  "https://github.com/alexjc/neural-doodle/releases/download/v0.0/vgg19_conv.pkl.bz2{}")
+                  "https://github.com/alexjc/neural-doodle/releases/download/v0.0/vgg19_conv.pkl.bz2")
 
         data = pickle.load(bz2.open(vgg19_file, 'rb'))
         params = lasagne.layers.get_all_param_values(self.network['main'])
@@ -268,7 +268,7 @@ class NeuralGenerator(object):
         map = scipy.ndimage.imread(mapname) if os.path.exists(mapname) else None
 
         if img is not None: print('  - Loading `{}` for {} data.'.format(filename, name))
-        if map is not None: print('  - Loading `{}` as its semantic map.'.format(mapname))
+        if map is not None: print('  - Adding `{}` as semantic map.'.format(mapname))
 
         if img is not None and map is not None and img.shape[:2] != map.shape[:2]:
             error("The {} image and its semantic map have different resolutions. Either:".format(name),
@@ -465,7 +465,7 @@ class NeuralGenerator(object):
 
         # Print more information to the console every few iterations.
         if args.print_every and self.frame % args.print_every == 0:
-            print('{:>3}   {}error{} {:8.2e} '.format(self.frame, ansi.BOLD, ansi.ENDC, loss / 1000.0), end='')
+            print('{:>3}   {}loss{} {:8.2e} '.format(self.frame, ansi.BOLD, ansi.ENDC, loss / 1000.0), end='')
             category = ''
             for v, l in zip(losses, self.losses):
                 if l[0] == 'smooth':

@@ -537,7 +537,7 @@ class NeuralGenerator(object):
             data_bounds = np.zeros((np.product(Xn.shape), 2), dtype=np.float64)
             data_bounds[:] = (0.0, 255.0)
 
-            self.iter_time = time.time()
+            self.iter_time, interrupt = time.time(), False
             try:
                 Xn, Vn, info = scipy.optimize.fmin_l_bfgs_b(
                                 self.evaluate,
@@ -551,6 +551,8 @@ class NeuralGenerator(object):
                 error("The optimization diverged and NaNs were encountered.",
                       "  - Try using a different `--device` or change the parameters.",
                       "  - Make sure libraries are updated to work around platform bugs.")
+            except KeyboardInterrupt:
+                interrupt = True
 
             args.seed = 'previous'
             resolution = self.content_image.shape
@@ -558,9 +560,11 @@ class NeuralGenerator(object):
 
             output = self.model.finalize_image(Xn[0], self.content_img_original.shape)
             scipy.misc.toimage(output, cmin=0, cmax=255).save(args.output)
+            if interrupt: break
 
-        print('\n{}Optimization finished in {:3.1f}s, average pixel error {:3.1f}!{}\n'\
-              .format(ansi.CYAN, time.time() - self.start_time, self.error, ansi.ENDC))
+        status = "Optimization finished in" if not interrupt else "Optimization interrupted at"
+        print('\n{}{} {:3.1f}s, average pixel error {:3.1f}!{}\n'\
+              .format(ansi.CYAN, status, time.time() - self.start_time, self.error, ansi.ENDC))
 
 
 if __name__ == "__main__":

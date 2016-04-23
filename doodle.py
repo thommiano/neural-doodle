@@ -39,7 +39,6 @@ add_arg('--seed',           default='noise', type=str,      help='Seed image pat
 add_arg('--seed-range',     default='16:240', type=str,     help='Random colors chosen in range, e.g. 0:255.')
 add_arg('--iterations',     default=100, type=int,          help='Number of iterations to run each resolution.')
 add_arg('--device',         default='cpu', type=str,        help='Index of the GPU number to use, for theano.')
-add_arg('--safe-mode',      default=0, action='store_true', help='Use conservative Theano setting to avoid problems.')
 add_arg('--print-every',    default=10, type=int,           help='How often to log statistics to stdout.')
 add_arg('--save-every',     default=10, type=int,           help='How frequently to save PNG into `frames`.')
 args = parser.parse_args()
@@ -60,14 +59,18 @@ class ansi:
     CYAN = '\033[0;36m'
     CYAN_B = '\033[1;36m'
     ENDC = '\033[0m'
+    
+def error(message, *lines):
+    string = "\n{}ERROR: " + message + "{}" + "\n".join(lines) + "{}\n"
+    print(string.format(ansi.RED_B, ansi.RED, ansi.ENDC))
+    sys.exit(-1)
 
 print('{}Neural Doodle for semantic style transfer.{}'.format(ansi.CYAN_B, ansi.ENDC))
 
 # Load the underlying deep learning libraries based on the device specified.  If you specify THEANO_FLAGS manually,
 # the code assumes you know what you are doing and they are not overriden!
-extra_flags = ',optimizer=fast_compile' if args.safe_mode else ''
 os.environ.setdefault('THEANO_FLAGS', 'floatX=float32,device={},force_device=True,'\
-                                      'print_active_device=False{}'.format(args.device, extra_flags))
+                                      'print_active_device=False'.format(args.device))
 
 # Scientific Libraries
 import numpy as np
@@ -154,10 +157,8 @@ class Model(object):
 
         vgg19_file = os.path.join(os.path.dirname(__file__), 'vgg19_conv.pkl.bz2')
         if not os.path.exists(vgg19_file):
-            print("\n{}ERROR: Model file with pre-trained convolution layers not found. Download here...{}\n"\
-                  "https://github.com/alexjc/neural-doodle/releases/download/v0.0/vgg19_conv.pkl.bz2{}\n"\
-            .format(ansi.RED_B, ansi.RED, ansi.ENDC))
-            sys.exit(-1)
+            error("Model file with pre-trained convolution layers not found. Download here...",
+                  "https://github.com/alexjc/neural-doodle/releases/download/v0.0/vgg19_conv.pkl.bz2{}")
 
         data = pickle.load(bz2.open(vgg19_file, 'rb'))
         params = lasagne.layers.get_all_param_values(self.network['main'])
@@ -224,21 +225,18 @@ class NeuralGenerator(object):
         print(ansi.ENDC, end='')
 
         if self.style_img_original is None:
-            print("\n{}ERROR: Couldn't find style image as expected.\n"\
-                  "{}  - Try making sure `{}` exists and is a valid image.{}\n".format(ansi.RED_B, ansi.RED, args.style, ansi.ENDC))
-            sys.exit(-1)
+            error("Couldn't find style image as expected.",
+                  "  - Try making sure `{}` exists and is a valid image.".format(args.style))
 
         if self.content_map_original is not None and self.style_map_original is None:
             basename, _ = os.path.splitext(args.style)
-            print("\n{}ERROR: Expecting a semantic map for the input style image too.\n"\
-                  "{}  - Try creating the file `{}_sem.png` with your annotations.{}\n".format(ansi.RED_B, ansi.RED, basename, ansi.ENDC))
-            sys.exit(-1)
+            error("Expecting a semantic map for the input style image too.",
+                  "  - Try creating the file `{}_sem.png` with your annotations.".format(basename))
 
         if self.style_map_original is not None and self.content_map_original is None:
             basename, _ = os.path.splitext(target)
-            print("\n{}ERROR: Expecting a semantic map for the input content image too.\n"\
-                  "{}  - Try creating the file `{}_sem.png` with your annotations.{}\n".format(ansi.RED_B, ansi.RED, basename, ansi.ENDC))
-            sys.exit(-1)
+            error("Expecting a semantic map for the input content image too.",
+                  "  - Try creating the file `{}_sem.png` with your annotations.".format(basename))
 
         if self.content_map_original is None:
             if self.content_img_original is None and args.output_size:
@@ -258,9 +256,8 @@ class NeuralGenerator(object):
             args.content_weight = 0.0
 
         if self.content_map_original.shape[2] != self.style_map_original.shape[2]:
-            print("\n{}ERROR: Mismatch in number of channels for style and content semantic map.\n"\
-                  "{}  - Make sure both images are RGB or RGBA.{}\n".format(ansi.RED_B, ansi.RED, ansi.ENDC))
-            sys.exit(-1)
+            error("Mismatch in number of channels for style and content semantic map.",
+                  "  - Make sure both images are RGB, RGBA, or L.")
 
     def load_images(self, name, filename):
         """If the image and map files exist, load them. Otherwise they'll be set to default values later.
@@ -274,10 +271,9 @@ class NeuralGenerator(object):
         if map is not None: print('  - Loading `{}` as its semantic map.'.format(mapname))
 
         if img is not None and map is not None and img.shape[:2] != map.shape[:2]:
-            print("\n{}ERROR: The {} image and its semantic map have different resolutions. Either:\n"\
-                  "{}  - Resize {} to {}, or\n  - Resize {} to {}.\n"\
-                  .format(ansi.RED_B, name, ansi.RED, filename,map.shape[1::-1], mapname,img.shape[1::-1], ansi.ENDC))
-            sys.exit(-1)
+            error("The {} image and its semantic map have different resolutions. Either:".format(name),
+                  "  - Resize {} to {}, or\n  - Resize {} to {}."\
+                  .format(filename, map.shape[1::-1], mapname, img.shape[1::-1]))
 
         return img, map
 
@@ -534,10 +530,8 @@ class NeuralGenerator(object):
                 self.seed_image = self.model.prepare_image(seed_image)
                 Xn = self.seed_image[0] + self.model.pixel_mean
             if Xn is None:
-                print("{}ERROR: Seed for optimization was not found. You can either...{}\n"\
-                      "  - Set the `--seed` to `content` or `noise`.\n"\
-                      "  - Specify `--seed` as a valid filename.{}\n".format(ansi.RED_B, ansi.RED, ansi.ENDC))
-                sys.exit(-1)
+                error("Seed for optimization was not found. You can either...",
+                      "  - Set the `--seed` to `content` or `noise`.", "  - Specify `--seed` as a valid filename.")
 
             # Optimization algorithm needs min and max bounds to prevent divergence.
             data_bounds = np.zeros((np.product(Xn.shape), 2), dtype=np.float64)
@@ -554,10 +548,9 @@ class NeuralGenerator(object):
                                 maxfun=args.iterations-1,        # Limit number of calls to evaluate().
                                 iprint=-1)                       # Handle our own logging of information.
             except OverflowError:
-                print("{}ERROR: The optimization diverged and NaNs were encountered.{}\n"\
-                      "  - Try using a different `--device` or change the parameters.\n"\
-                      "  - Experiment with `--safe-mode` to work around platform bugs.{}\n".format(ansi.RED_B, ansi.RED, ansi.ENDC))
-                sys.exit(-1)
+                error("The optimization diverged and NaNs were encountered.",
+                      "  - Try using a different `--device` or change the parameters.",
+                      "  - Make sure libraries are updated to work around platform bugs.")
 
             args.seed = 'previous'
             resolution = self.content_image.shape

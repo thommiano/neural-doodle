@@ -304,20 +304,11 @@ class NeuralGenerator(object):
         style_map = skimage.transform.rescale(self.style_map_original, scale) * 255.0
         self.style_map = style_map.transpose((2, 0, 1))[np.newaxis].astype(np.float32)
 
-        # Workaround for Issue #8. Not clear what this is caused by, NaN seems to happen in convolution node
-        # on some OSX installations. https://github.com/alexjc/neural-doodle/issues/8
-        if args.safe_mode:
-            from theano.compile.nanguardmode import NanGuardMode
-            flags = {'mode': NanGuardMode(nan_is_error=True, inf_is_error=True, big_is_error=False)}
-        else:
-            flags = {}
-
         # Compile a function to run on the GPU to extract patches for all layers at once.
         required_layers = ['conv'+l for l in self.style_layers] + ['map'+l for l in self.style_layers]
         extractor = theano.function(
                         [self.model.tensor_img, self.model.tensor_map],
-                        self.extract_patches([self.model.tensor_outputs[l] for l in required_layers]),
-                        **flags)
+                        self.extract_patches([self.model.tensor_outputs[l] for l in required_layers]))
         result = extractor(self.style_image, self.style_map)
 
         # For each layer, build it from set of patches and their magnitude.
@@ -430,7 +421,7 @@ class NeuralGenerator(object):
             # by semantic map. This is the result of normalized cross correlation, so range is [0.0, 1.0].
             scores = dist + args.semantic_weight * sem
             # Measure the best score of each style patch, to see if it has found its place in the current image.
-            offset = scores.max(axis=1).reshape((-1,1)) if args.variety else 0.0
+            offset = dist.max(axis=1).reshape((-1,1)) if args.variety else 0.0
             # Compute matching patch indices from the scores, but leveling the playing field based on the `variety`
             # parameter specified by the user.
             matches = (scores - offset * args.variety).argmax(axis=0)

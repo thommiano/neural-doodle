@@ -139,15 +139,17 @@ class Model(object):
         net['main']    = net['conv5_4']
 
         # Auxiliary network for the semantic layers, and the nearest neighbors calculations.
-        net['map'] = InputLayer((1, 3, None, None))
+        net['map'] = InputLayer((1, 3, None, None)) # TODO: This should not always be 3, could be 4 or 1.
         for j, i in itertools.product(range(5), range(4)):
             if j < 2 and i > 1: continue
             suffix = '%i_%i' % (j+1, i+1)
 
-            net['map'+suffix] = PoolLayer(net['map'], 2**j, mode='average_exc_pad')
+            if i == 0:
+                net['map%i'%(j+1)] = PoolLayer(net['map'], 2**j, mode='average_exc_pad')
+            net['sem'+suffix] = ConcatLayer([net['conv'+suffix], net['map%i'%(j+1)]])
 
-            net['nn'+suffix] = ConvLayer(net['conv'+suffix], 1, 3, b=None, pad=0)
-            net['mm'+suffix] = ConvLayer(net['map'+suffix], 1, 3, b=None, pad=0)
+            net['dup'+suffix] = InputLayer(net['sem'+suffix].output_shape)
+            net['nn'+suffix] = ConvLayer(net['dup'+suffix], 1, 3, b=None, pad=0, flip_filters=False)
 
         self.network = net
 
@@ -301,32 +303,21 @@ class NeuralGenerator(object):
         self.style_map = style_map.transpose((2, 0, 1))[np.newaxis].astype(np.float32)
 
         # Compile a function to run on the GPU to extract patches for all layers at once.
-        required_layers = ['conv'+l for l in self.style_layers] + ['map'+l for l in self.style_layers]
+        required_layers = ['sem'+l for l in self.style_layers]
         extractor = theano.function(
                         [self.model.tensor_img, self.model.tensor_map],
-                        self.extract_patches([self.model.tensor_outputs[l] for l in required_layers]))
+                        self.do_extract_patches([self.model.tensor_outputs[l] for l in required_layers]))
         result = extractor(self.style_image, self.style_map)
 
-        # For each layer, build it from set of patches and their magnitude.
-        def build(layer, prefix, name, patches, norms):
-            l = self.model.network[prefix+layer]
-            l.N = theano.shared(norms)
-            l.W.set_value(patches)
-            l.num_filters = patches.shape[0]
-            print('  - {} layer {}: {} patches in {:,}kb.'.format(name, layer, patches.shape[0], patches.size//1000))
-
-        if args.style_weight > 0.0:
-            result_nn = result[:len(self.style_layers)*2]
-            for layer, *data in zip(self.style_layers, result_nn[::2], result_nn[1::2]):
-                build(layer, 'nn', 'Style', *data)
-
-        if args.semantic_weight > 0.0:
-            result_mm = result[len(self.style_layers)*2:]
-            for layer, *data in zip(self.style_layers, result_mm[::2], result_mm[1::2]):
-                build(layer, 'mm', 'Semantic', *data)
+        self.style_data = {}
+        for layer, *data in zip(self.style_layers, result[0::2], result[1::2]):
+            l, patches = self.model.network['nn'+layer], data[0]
+            l.num_filters = patches.shape[0] # TODO: This is the number of slices.
+            self.style_data[layer] = data
+            print('  - Style layer {}: {} patches in {:,}kb.'.format(layer, patches.shape[0], patches.size//1000))
 
 
-    def extract_patches(self, layers, size=3, stride=1):
+    def do_extract_patches(self, layers, size=3, stride=1):
         """This function builds a Theano expression that will get compiled an run on the GPU. It extracts 3x3 patches
         from the intermediate outputs in the model.
         """
@@ -340,22 +331,47 @@ class NeuralGenerator(object):
             patches = patches.reshape((-1, patches.shape[0] // f.shape[1], size, size)).dimshuffle((1, 0, 2, 3))
 
             # Calcualte the magnitude that we'll use for normalization at runtime, then store...
-            norm = T.sqrt(T.sum(patches ** 2.0, axis=(1,2,3), keepdims=True))
-            results.extend([patches[:,:,::-1,::-1], norm])
+            norms = T.sqrt(T.sum(patches, axis=(1,), keepdims=True))
+            results.extend([patches, norms])
         return results
 
     def prepare_optimization(self):
         """Optimization requires a function to compute the error (aka. loss) which is done in multiple components.
         Here we compile a function to run on the GPU that returns all components separately.
         """
-        
+
+        # Feed-forward calculation only, returns the result of the convolution post-activation 
+        self.compute_features = theano.function(
+                        [self.model.tensor_img, self.model.tensor_map],
+                        [self.model.tensor_outputs['sem'+l] for l in self.style_layers])
+
+        # Patch matching calculation that uses only pre-calculated features and a slice of the patches.
+        self.matcher_tensors = {l: T.tensor4() for l in self.style_layers}
+        self.matcher_inputs = {self.model.network['dup'+l]: self.matcher_tensors[l] for l in self.style_layers}
+        nn_layers = [self.model.network['nn'+l] for l in self.style_layers]
+        self.matcher_outputs = dict(zip(self.style_layers, lasagne.layers.get_output(nn_layers, self.matcher_inputs)))
+
+        self.compute_matches = {l: theano.function([self.matcher_tensors[l]], self.do_match_patches(l))\
+                                   for l in self.style_layers}
+
+        self.tensor_matches = [T.tensor4() for l in self.style_layers]
         # Build a list of Theano expressions that, once summed up, compute the total error.
-        self.losses = self.content_loss() + self.style_loss() + self.total_variation_loss()
+        self.losses = self.content_loss() + self.total_variation_loss() + self.style_loss()
         # Let Theano automatically compute the gradient of the error, used by LBFGS to update image pixels.
         grad = T.grad(sum([l[-1] for l in self.losses]), self.model.tensor_img)
         # Create a single function that returns the gradient and the individual errors components.
-        self.compute_grad_and_losses = theano.function([self.model.tensor_img, self.model.tensor_map],
-                                                       [grad] + [l[-1] for l in self.losses], on_unused_input='ignore')
+        self.compute_grad_and_losses = theano.function(
+                                                [self.model.tensor_img, self.model.tensor_map] + self.tensor_matches,
+                                                [grad] + [l[-1] for l in self.losses], on_unused_input='ignore')
+
+    def do_match_patches(self, l):
+        # Use node in the model to compute the result of the normalized cross-correlation, using results from the
+        # nearest-neighbor layers called 'nn3_1' and 'nn4_1'.
+        dist = self.matcher_outputs[l]
+        dist = dist.reshape((dist.shape[1], -1))
+
+        # Pick the best style patches for each patch in the current image, the result is an array of indices.
+        return [dist.argmax(axis=0), dist.max(axis=0)]
 
 
     #------------------------------------------------------------------------------------------------------------------
@@ -388,6 +404,26 @@ class NeuralGenerator(object):
         """Returns a list of loss components as Theano expressions. Finds the best style patch for each patch in the
         current image using normalized cross-correlation, then computes the mean squared error for all patches.
         """
+        style_loss = []
+        if args.style_weight == 0.0:
+            return style_loss
+
+        # TODO: Here only need to transfer 'conv' layers, skip data from semantic map!
+        # Extract the patches from the current image, as well as their magnitude.
+        result = self.do_extract_patches([self.model.tensor_outputs['sem'+l] for l in self.style_layers])
+
+        # Multiple style layers are optimized separately, usually sem3_1 and sem4_1.
+        for l, matches, patches in zip(self.style_layers, self.tensor_matches, result[0::2]):
+            # Compute the mean squared error between the current patch and the best matching style patch.
+            # Ignore the last channels (from semantic map) so errors returned are indicative of image only.
+            channels = self.style_map_original.shape[2]
+            loss = T.mean((patches[:,:-channels] - matches[:,:-channels]) ** 2.0)
+            style_loss.append(('style', l, args.style_weight * loss))
+
+        return style_loss
+
+    """
+    def style_loss(self):
         style_loss = []
         if args.style_weight == 0.0:
             return style_loss
@@ -428,6 +464,7 @@ class NeuralGenerator(object):
             style_loss.append(('style', l, args.style_weight * loss))
 
         return style_loss
+        """
 
     def total_variation_loss(self):
         """Return a loss component as Theano expression for the smoothness prior on the result image.
@@ -444,13 +481,26 @@ class NeuralGenerator(object):
     def evaluate(self, Xn):
         """Callback for the L-BFGS optimization that computes the loss and gradients on the GPU.
         """
-        
+
         # Adjust the representation to be compatible with the model before computing results.
         current_img = Xn.reshape(self.content_image.shape).astype(np.float32) - self.model.pixel_mean
-        grads, *losses = self.compute_grad_and_losses(current_img, self.content_map)
+        current_features = self.compute_features(current_img, self.content_map)
 
+        # Iterate through each of the style layers one by one, computing best matches.
+        current_best = []
+        for l, f in zip(self.style_layers, current_features):
+            layer = self.model.network['nn'+l]
+            patches, norms = self.style_data[l]
+            layer.W.set_value(patches / (9.0 * norms))
+
+            n = np.sqrt(np.sum(f, axis=(1,), keepdims=True))
+            best, cost = self.compute_matches[l](f / (9.0 * n))
+            current_best.append(patches[best])
+
+        # Given the best found matches, now directly compare against current activations.
+        grads, *losses = self.compute_grad_and_losses(current_img, self.content_map, *current_best)
         if np.isnan(grads).any():
-            raise OverflowError("Optimization diverged; try using different device or parameters.")
+            raise OverflowError("Optimization diverged; try using a different device or parameters.")
 
         # Use magnitude of gradients as an estimate for overall quality.
         self.error = self.error * 0.9 + 0.1 * min(np.abs(grads).max(), 255.0)
@@ -499,17 +549,13 @@ class NeuralGenerator(object):
                     .format(ansi.BLUE_B, i, int(shape[1]*scale), int(shape[0]*scale), scale, ansi.BLUE))
 
             # Precompute all necessary data for the various layers, put patches in place into augmented network.
-            self.model.setup(layers=['conv'+l for l in self.style_layers] +
-                                    ['map'+l for l in self.style_layers] +
+            self.model.setup(layers=['sem'+l for l in self.style_layers] +
                                     ['conv'+l for l in self.content_layers])
             self.prepare_content(scale)
             self.prepare_style(scale)
 
             # Now setup the model with the new data, ready for the optimization loop.
-            self.model.setup(layers=['conv'+l for l in self.style_layers] +
-                                    ['map'+l for l in self.style_layers] +
-                                    ['nn'+l for l in self.style_layers] +
-                                    ['mm'+l for l in self.style_layers] +
+            self.model.setup(layers=['sem'+l for l in self.style_layers] +
                                     ['conv'+l for l in self.content_layers])
             self.prepare_optimization()
             print('{}'.format(ansi.ENDC))
@@ -562,8 +608,8 @@ class NeuralGenerator(object):
             scipy.misc.toimage(output, cmin=0, cmax=255).save(args.output)
             if interrupt: break
 
-        status = "Optimization finished in" if not interrupt else "Optimization interrupted at"
-        print('\n{}{} {:3.1f}s, average pixel error {:3.1f}!{}\n'\
+        status = "finished in" if not interrupt else "interrupted at"
+        print('\n{}Optimization {} {:3.1f}s, average pixel error {:3.1f}!{}\n'\
               .format(ansi.CYAN, status, time.time() - self.start_time, self.error, ansi.ENDC))
 
 

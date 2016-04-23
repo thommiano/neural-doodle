@@ -330,8 +330,8 @@ class NeuralGenerator(object):
             # Make sure the patches are in the shape required to insert them into the model as another layer.
             patches = patches.reshape((-1, patches.shape[0] // f.shape[1], size, size)).dimshuffle((1, 0, 2, 3))
 
-            # Calcualte the magnitude that we'll use for normalization at runtime, then store...
-            norms = T.sqrt(T.sum(patches, axis=(1,), keepdims=True))
+            # Calculate the magnitude that we'll use for normalization at runtime, then store...
+            norms = T.sqrt(T.sum(patches ** 2.0, axis=(1,), keepdims=True))
             results.extend([patches, norms])
         return results
 
@@ -422,50 +422,6 @@ class NeuralGenerator(object):
 
         return style_loss
 
-    """
-    def style_loss(self):
-        style_loss = []
-        if args.style_weight == 0.0:
-            return style_loss
-
-        # Extract the patches from the current image, as well as their magnitude.
-        result = self.extract_patches([self.model.tensor_outputs['conv'+l] for l in self.style_layers]
-                                    + [self.model.tensor_outputs['map'+l] for l in self.style_layers])
-
-        result_nn = result[:len(self.style_layers)*2]
-        result_mm = result[len(self.style_layers)*2:]
-        # Multiple style layers are optimized separately, usually sem3_1 and sem4_1.
-        for l, patches, norms, sem_norms in zip(self.style_layers, result_nn[::2], result_nn[1::2], result_mm[1::2]):
-            # Compute the result of the normalized cross-correlation, using results from the nearest-neighbor
-            # layers called 'nn3_1' and 'nn4_1' (for example).
-            layer = self.model.network['nn'+l]
-            dist = self.model.tensor_outputs['nn'+l]
-            dist = dist.reshape((dist.shape[1], -1)) / norms.reshape((1,-1)) / layer.N.reshape((-1,1))
-
-            if args.semantic_weight > 0.0:
-                sem_layer = self.model.network['mm'+l]
-                sem = self.model.tensor_outputs['mm'+l]
-                sem = sem.reshape((sem.shape[1], -1)) / sem_norms.reshape((1,-1)) / sem_layer.N.reshape((-1,1))
-            else:
-                sem = 1.0
-
-            # Determine the score matrix matching patches in the current image to the style patches, each weighted
-            # by semantic map. This is the result of normalized cross correlation, so range is [0.0, 1.0].
-            scores = dist + args.semantic_weight * sem
-            # Measure the best score of each style patch, to see if it has found its place in the current image.
-            offset = dist.max(axis=1).reshape((-1,1)) if args.variety else 0.0
-            # Compute matching patch indices from the scores, but leveling the playing field based on the `variety`
-            # parameter specified by the user.
-            matches = (scores - offset * args.variety).argmax(axis=0)
-
-            # Compute the mean squared error between the current patch and the best matching style patch.
-            # Ignore the last channels (from semantic map) so errors returned are indicative of image only.
-            loss = T.mean((patches - layer.W[matches]) ** 2.0)
-            style_loss.append(('style', l, args.style_weight * loss))
-
-        return style_loss
-        """
-
     def total_variation_loss(self):
         """Return a loss component as Theano expression for the smoothness prior on the result image.
         """
@@ -491,13 +447,12 @@ class NeuralGenerator(object):
         for l, f in zip(self.style_layers, current_features):
             layer = self.model.network['nn'+l]
             patches, norms = self.style_data[l]
-            layer.W.set_value(patches / (9.0 * norms))
+            layer.W.set_value(patches / (3.0 * norms))
 
-            n = np.sqrt(np.sum(f, axis=(1,), keepdims=True))
-            best, cost = self.compute_matches[l](f / (9.0 * n))
+            n = np.sqrt(np.sum(f ** 2.0, axis=(1,), keepdims=True))
+            best, cost = self.compute_matches[l](f / (3.0 * n))
             current_best.append(patches[best])
 
-        # Given the best found matches, now directly compare against current activations.
         grads, *losses = self.compute_grad_and_losses(current_img, self.content_map, *current_best)
         if np.isnan(grads).any():
             raise OverflowError("Optimization diverged; try using a different device or parameters.")

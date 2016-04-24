@@ -454,7 +454,7 @@ class NeuralGenerator(object):
             weights = patches.astype(np.float32)
             weights[:,:-3] /= (norms_m * 3.0)
             if semantic_weight: weights[:,-3:] /= (norms_s * semantic_weight)
-            layer.W.set_value(patches)
+            layer.W.set_value(weights)
 
             nm = np.sqrt(np.sum(f[:,:-3] ** 2.0, axis=(1,), keepdims=True))
             ns = np.sqrt(np.sum(f[:,-3:] ** 2.0, axis=(1,), keepdims=True))

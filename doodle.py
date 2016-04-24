@@ -355,7 +355,7 @@ class NeuralGenerator(object):
         nn_layers = [self.model.network['nn'+l] for l in self.style_layers]
         self.matcher_outputs = dict(zip(self.style_layers, lasagne.layers.get_output(nn_layers, self.matcher_inputs)))
 
-        self.compute_matches = {l: theano.function([self.matcher_tensors[l]], # self.matcher_history[l]],
+        self.compute_matches = {l: theano.function([self.matcher_tensors[l], self.matcher_history[l]],
                                                     self.do_match_patches(l)) for l in self.style_layers}
 
         self.tensor_matches = [T.tensor4() for l in self.style_layers]
@@ -374,8 +374,8 @@ class NeuralGenerator(object):
         dist = self.matcher_outputs[layer]
         dist = dist.reshape((dist.shape[1], -1))
 
-        # offset = self.matcher_history[layer].reshape((-1, 1))
-        scores = dist # (dist - offset * args.variety)
+        offset = self.matcher_history[layer].reshape((-1, 1))
+        scores = (dist - offset * args.variety)
         matches = scores.argmax(axis=0)
 
         # Pick the best style patches for each patch in the current image, the result is an array of indices.
@@ -481,7 +481,7 @@ class NeuralGenerator(object):
                 if semantic_weight: weights[:,-3:] /= (bs * semantic_weight)
                 layer.W.set_value(weights)
 
-                cur_idx, cur_val, cur_match = self.compute_matches[l](f) #, history[idx])
+                cur_idx, cur_val, cur_match = self.compute_matches[l](f, history[idx])
                 if best_idx is None:
                     best_idx = cur_idx
                     best_val = cur_val

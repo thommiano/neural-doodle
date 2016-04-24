@@ -441,6 +441,14 @@ class NeuralGenerator(object):
     # Optimization Loop
     #------------------------------------------------------------------------------------------------------------------
 
+    def iterate_batches(self, *arrays, batch_size=1024):
+        total_size = arrays[0].shape[0]
+        indices = np.arange(total_size)
+
+        for index in range(0, total_size, batch_size):
+            excerpt = indices[index:index + batch_size]
+            yield excerpt, [a[excerpt] for a in arrays]
+
     def evaluate(self, Xn):
         """Callback for the L-BFGS optimization that computes the loss and gradients on the GPU.
         """
@@ -456,20 +464,31 @@ class NeuralGenerator(object):
             layer = self.model.network['nn'+l]
             patches, norms_m, norms_s, history = self.style_data[l]
 
-            weights = patches.astype(np.float32)
-            weights[:,:-3] /= (norms_m * 3.0)
-            if semantic_weight: weights[:,-3:] /= (norms_s * semantic_weight)
-            layer.W.set_value(weights)
-
+            # Helper for normalizing an array?
             nm = np.sqrt(np.sum(f[:,:-3] ** 2.0, axis=(1,), keepdims=True))
             ns = np.sqrt(np.sum(f[:,-3:] ** 2.0, axis=(1,), keepdims=True))
 
             f[:,:-3] /= (nm * 3.0) # TODO: Use exact number of channels.
             if semantic_weight: f[:,-3:] /= (ns * semantic_weight)
 
-            best_idx, best_val, best_match = self.compute_matches[l](f, history)
+            best_idx, best_val = None, 0.0
+            for idx, (bp, bm, bs, bh) in self.iterate_batches(patches, norms_m, norms_s, history):
+                weights = bp.astype(np.float32)
+                weights[:,:-3] /= (bm * 3.0) # TODO: Use exact number of channels.
+                if semantic_weight: weights[:,-3:] /= (bs * semantic_weight)
+                layer.W.set_value(weights)
 
-            history[:] = best_match
+                cur_idx, cur_val, cur_match = self.compute_matches[l](f, history[idx])
+                if best_idx is None:
+                    best_idx = cur_idx
+                    best_val = cur_val
+                else:
+                    i = np.where(cur_val > best_val)
+                    best_idx[i] = idx[cur_idx[i]]
+                    best_val[i] = cur_val[i]
+
+                history[idx] = cur_match
+
             current_best.append(patches[best_idx].astype(np.float32))
 
         grads, *losses = self.compute_grad_and_losses(current_img, self.content_map, *current_best)

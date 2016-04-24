@@ -71,7 +71,7 @@ print('{}Neural Doodle for semantic style transfer.{}'.format(ansi.CYAN_B, ansi.
 # Load the underlying deep learning libraries based on the device specified.  If you specify THEANO_FLAGS manually,
 # the code assumes you know what you are doing and they are not overriden!
 os.environ.setdefault('THEANO_FLAGS', 'floatX=float32,device={},force_device=True,'\
-                                      'print_active_device=False'.format(args.device))
+                                      'print_active_device=False,optimizer=fast_compile'.format(args.device))
 
 # Scientific Libraries
 import numpy as np
@@ -373,12 +373,12 @@ class NeuralGenerator(object):
         dist = self.matcher_outputs[layer]
         dist = dist.reshape((dist.shape[1], -1))
 
-        offset = self.matcher_history[layer]
+        offset = self.matcher_history[layer].reshape((-1, 1))
         scores = (dist - offset * args.variety)
         matches = scores.argmax(axis=0)
 
         # Pick the best style patches for each patch in the current image, the result is an array of indices.
-        return [dist.argmax(axis=0), scores.max(axis=0), dist.max(axis=1)]
+        return [matches, scores.max(axis=0), dist.max(axis=1)]
 
 
     #------------------------------------------------------------------------------------------------------------------

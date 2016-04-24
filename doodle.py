@@ -314,7 +314,7 @@ class NeuralGenerator(object):
         for layer, *data in zip(self.style_layers, result[0::3], result[1::3], result[2::3]):
             l, patches = self.model.network['nn'+layer], data[0]
             l.num_filters = patches.shape[0] # TODO: This is the number of slices.
-            self.style_data[layer] = [d.astype(np.float16) for d in data]
+            self.style_data[layer] = [d.astype(np.float16) for d in data] + [np.zeros((patches.shape[0],), dtype=np.float16)]
             print('  - Style layer {}: {} patches in {:,}kb.'.format(layer, patches.shape[0], patches.size//1000))
 
 
@@ -349,12 +349,13 @@ class NeuralGenerator(object):
 
         # Patch matching calculation that uses only pre-calculated features and a slice of the patches.
         self.matcher_tensors = {l: T.tensor4() for l in self.style_layers}
+        self.matcher_history = {l: T.vector() for l in self.style_layers} 
         self.matcher_inputs = {self.model.network['dup'+l]: self.matcher_tensors[l] for l in self.style_layers}
         nn_layers = [self.model.network['nn'+l] for l in self.style_layers]
         self.matcher_outputs = dict(zip(self.style_layers, lasagne.layers.get_output(nn_layers, self.matcher_inputs)))
 
-        self.compute_matches = {l: theano.function([self.matcher_tensors[l]], self.do_match_patches(l))\
-                                   for l in self.style_layers}
+        self.compute_matches = {l: theano.function([self.matcher_tensors[l], self.matcher_history[l]],
+                                                    self.do_match_patches(l)) for l in self.style_layers}
 
         self.tensor_matches = [T.tensor4() for l in self.style_layers]
         # Build a list of Theano expressions that, once summed up, compute the total error.
@@ -366,14 +367,18 @@ class NeuralGenerator(object):
                                                 [self.model.tensor_img, self.model.tensor_map] + self.tensor_matches,
                                                 [grad] + [l[-1] for l in self.losses], on_unused_input='ignore')
 
-    def do_match_patches(self, l):
+    def do_match_patches(self, layer):
         # Use node in the model to compute the result of the normalized cross-correlation, using results from the
         # nearest-neighbor layers called 'nn3_1' and 'nn4_1'.
-        dist = self.matcher_outputs[l]
+        dist = self.matcher_outputs[layer]
         dist = dist.reshape((dist.shape[1], -1))
 
+        offset = self.matcher_history[layer]
+        scores = (dist - offset * args.variety)
+        matches = scores.argmax(axis=0)
+
         # Pick the best style patches for each patch in the current image, the result is an array of indices.
-        return [dist.argmax(axis=0), dist.max(axis=0)]
+        return [dist.argmax(axis=0), scores.max(axis=0), dist.max(axis=1)]
 
 
     #------------------------------------------------------------------------------------------------------------------
@@ -449,7 +454,7 @@ class NeuralGenerator(object):
 
         for l, f in zip(self.style_layers, current_features):
             layer = self.model.network['nn'+l]
-            patches, norms_m, norms_s = self.style_data[l]
+            patches, norms_m, norms_s, history = self.style_data[l]
 
             weights = patches.astype(np.float32)
             weights[:,:-3] /= (norms_m * 3.0)
@@ -462,8 +467,10 @@ class NeuralGenerator(object):
             f[:,:-3] /= (nm * 3.0) # TODO: Use exact number of channels.
             if semantic_weight: f[:,-3:] /= (ns * semantic_weight)
 
-            best, cost = self.compute_matches[l](f)
-            current_best.append(patches[best].astype(np.float32))
+            best_idx, best_val, best_match = self.compute_matches[l](f, history)
+
+            history[:] = best_match
+            current_best.append(patches[best_idx].astype(np.float32))
 
         grads, *losses = self.compute_grad_and_losses(current_img, self.content_map, *current_best)
         if np.isnan(grads).any():

@@ -211,6 +211,7 @@ class NeuralGenerator(object):
         self.start_time = time.time()
         self.model = Model()
 
+        self.style_cache = {}
         self.style_layers = args.style_layers.split(',')
         self.content_layers = args.content_layers.split(',')
 
@@ -314,11 +315,11 @@ class NeuralGenerator(object):
         self.style_data = {}
         for layer, *data in zip(self.style_layers, result[0::3], result[1::3], result[2::3]):
             l = self.model.network['nn'+layer]
-            data[0] = data[0][:l.num_filters*args.slices]
             patches = data[0]
             l.num_filters = patches.shape[0] // args.slices
+            data[0] = data[0][:l.num_filters*args.slices]
             self.style_data[layer] = [d.astype(np.float16) for d in data] + [np.zeros((patches.shape[0],), dtype=np.float16)]
-            print('  - Style layer {}: {} patches in {:,}kb.'.format(layer, patches.shape[0], patches.size//1000))
+            print('  - Style layer {}: {} patches in {:,}kb.'.format(layer, patches.shape, patches.size//1000))
 
 
     def do_extract_patches(self, layers, size=3, stride=1):
@@ -351,13 +352,14 @@ class NeuralGenerator(object):
                         [self.model.tensor_outputs['sem'+l] for l in self.style_layers])
 
         # Patch matching calculation that uses only pre-calculated features and a slice of the patches.
-        self.matcher_tensors = {l: T.tensor4() for l in self.style_layers}
+        
+        self.matcher_tensors = {l: lasagne.utils.shared_empty(dim=4) for l in self.style_layers}
         self.matcher_history = {l: T.vector() for l in self.style_layers} 
         self.matcher_inputs = {self.model.network['dup'+l]: self.matcher_tensors[l] for l in self.style_layers}
         nn_layers = [self.model.network['nn'+l] for l in self.style_layers]
         self.matcher_outputs = dict(zip(self.style_layers, lasagne.layers.get_output(nn_layers, self.matcher_inputs)))
 
-        self.compute_matches = {l: theano.function([self.matcher_tensors[l], self.matcher_history[l]],
+        self.compute_matches = {l: theano.function([self.matcher_history[l]],
                                                     self.do_match_patches(l)) for l in self.style_layers}
 
         self.tensor_matches = [T.tensor4() for l in self.style_layers]
@@ -453,6 +455,9 @@ class NeuralGenerator(object):
             yield excerpt, [a[excerpt] for a in arrays]
 
     def evaluate_slices(self, f, l, semantic_weight):
+        # if l in self.style_cache:
+        #     return self.style_cache[l]
+
         layer, data = self.model.network['nn'+l], self.style_data[l]
         history = data[-1]
 
@@ -463,7 +468,7 @@ class NeuralGenerator(object):
             if semantic_weight: weights[:,-3:] /= (bs * semantic_weight)
             layer.W.set_value(weights)
 
-            cur_idx, cur_val, cur_match = self.compute_matches[l](f, history[idx])
+            cur_idx, cur_val, cur_match = self.compute_matches[l](history[idx])
             if best_idx is None:
                 best_idx = cur_idx
                 best_val = cur_val
@@ -473,6 +478,8 @@ class NeuralGenerator(object):
                 best_val[i] = cur_val[i]
 
             history[idx] = cur_match
+        
+        self.style_cache[l] = best_idx
         return best_idx
 
     def evaluate(self, Xn):
@@ -493,6 +500,8 @@ class NeuralGenerator(object):
 
             f[:,:-3] /= (nm * 3.0) # TODO: Use exact number of channels.
             if semantic_weight: f[:,-3:] /= (ns * semantic_weight)
+            
+            self.matcher_tensors[l].set_value(f)
 
             # Compute best matching patches this style layer, going through all slices.
             warmup = bool(args.variety > 0.0 and self.iteration == 0)

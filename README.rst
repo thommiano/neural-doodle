@@ -10,10 +10,10 @@ The ``doodle.py`` script generates a new image by using one, two, three or four 
 
 **NOTE**: Making a ``#NeuralDoodle`` is a skill. The parameters in the script were adjusted to work well by default and with the examples below. For new images, you may need to adjust values and modify on your input data too. It takes practice, but you can reach almost photo-realistic results if you iterate! (`Ask for advice here or see examples <https://github.com/alexjc/neural-doodle/issues?q=label%3Aadvice>`_.)
 
-1. `Examples & Usage <#examples--usage>`_
-2. `Installation <#installation-setup>`_
-3. `Troubleshooting <#troubleshooting-problems>`_
-4. `Frequent Questions <#frequent-questions>`_
+1. `Examples & Usage <#1-examples--usage>`_
+2. `Installation <#2-installation-setup>`_
+3. `Troubleshooting <#3-troubleshooting-problems>`_
+4. `Frequent Questions <#4-frequent-questions>`_
 
 **IMPORTANT**: This project is possible thanks to the `nucl.ai Conference <http://events.nucl.ai/>`_ on Creative AI, **July 18-20**. Join us in **Vienna**!
 

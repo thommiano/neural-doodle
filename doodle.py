@@ -16,6 +16,7 @@ import time
 import pickle
 import argparse
 import itertools
+import collections
 
 
 # Configure all options first so we can custom load other libraries (Theano) based on device specified by user.
@@ -114,7 +115,7 @@ class Model(object):
         """Use lasagne to create a network of convolution layers, first using VGG19 as the framework
         and then adding augmentations for Semantic Style Transfer.
         """
-        net = {}
+        net, self.channels = {}, {}
 
         # Primary network for the main image. These are convolution only, and stop at layer 4_2 (rest unused).
         net['img']     = InputLayer((1, 3, None, None))
@@ -148,6 +149,8 @@ class Model(object):
 
             if i == 0:
                 net['map%i'%(j+1)] = PoolLayer(net['map'], 2**j, mode='average_exc_pad')
+            self.channels[suffix] = net['conv'+suffix].num_filters
+            
             if args.semantic_weight > 0.0:
                 net['sem'+suffix] = ConcatLayer([net['conv'+suffix], net['map%i'%(j+1)]])
             else:
@@ -175,9 +178,8 @@ class Model(object):
         """
         self.tensor_img = T.tensor4()
         self.tensor_map = T.tensor4()
-        self.tensor_inputs = {self.network['img']: self.tensor_img, self.network['map']: self.tensor_map}
-
-        outputs = lasagne.layers.get_output([self.network[l] for l in layers], self.tensor_inputs)
+        tensor_inputs = {self.network['img']: self.tensor_img, self.network['map']: self.tensor_map}
+        outputs = lasagne.layers.get_output([self.network[l] for l in layers], tensor_inputs)
         self.tensor_outputs = {k: v for k, v in zip(layers, outputs)}
 
     def get_outputs(self, type, layers):
@@ -273,8 +275,6 @@ class NeuralGenerator(object):
 
         # Finalize the parameters based on what we loaded, then create the model.
         args.semantic_weight = math.sqrt(9.0 / args.semantic_weight) if args.semantic_weight else 0.0
-        self.semantic_channel = {'3_1': 256, '4_1': 512}
-        print('SEMCHAN', self.semantic_channel)
         self.model = Model()
 
 
@@ -288,7 +288,7 @@ class NeuralGenerator(object):
         basename, _ = os.path.splitext(filename)
         mapname = basename + args.semantic_ext
         img = scipy.ndimage.imread(filename, mode='RGB') if os.path.exists(filename) else None
-        map = scipy.ndimage.imread(mapname) if os.path.exists(mapname) else None
+        map = scipy.ndimage.imread(mapname) if os.path.exists(mapname) and args.semantic_weight > 0.0 else None
 
         if img is not None: print('  - Loading `{}` for {} data.'.format(filename, name))
         if map is not None: print('  - Adding `{}` as semantic map.'.format(mapname))
@@ -305,14 +305,15 @@ class NeuralGenerator(object):
         return theano.function(list(arguments), function, on_unused_input='ignore')
 
     def compute_norms(self, backend, layer, array):
-        return [backend.sqrt(backend.sum(array[:,:self.semantic_channel[layer]] ** 2.0, axis=(1,), keepdims=True)),
-                backend.sqrt(backend.sum(array[:,self.semantic_channel[layer]:] ** 2.0, axis=(1,), keepdims=True))]
+        ni = backend.sqrt(backend.sum(array[:,:self.model.channels[layer]] ** 2.0, axis=(1,), keepdims=True))
+        ns = backend.sqrt(backend.sum(array[:,self.model.channels[layer]:] ** 2.0, axis=(1,), keepdims=True))
+        return [ni] + [ns]
 
     def normalize_components(self, layer, array, norms):
         if args.style_weight > 0.0:
-            array[:,:self.semantic_channel[layer]] /= (norms[0] * 3.0)
+            array[:,:self.model.channels[layer]] /= (norms[0] * 3.0)
         if args.semantic_weight > 0.0:
-            array[:,self.semantic_channel[layer]:] /= (norms[1] * args.semantic_weight)
+            array[:,self.model.channels[layer]:] /= (norms[1] * args.semantic_weight)
 
 
     #------------------------------------------------------------------------------------------------------------------
@@ -340,7 +341,7 @@ class NeuralGenerator(object):
 
         # Compile a function to run on the GPU to extract patches for all layers at once.
         layer_outputs = zip(self.style_layers, self.model.get_outputs('sem', self.style_layers))
-        extractor = self.compile(self.model.tensor_inputs.values(), self.do_extract_patches(layer_outputs))
+        extractor = self.compile([self.model.tensor_img, self.model.tensor_map], self.do_extract_patches(layer_outputs))
         result = extractor(self.style_img, self.style_map)
 
         # Store all the style patches layer by layer, resized to match slice size and cast to 16-bit for size. 
@@ -359,7 +360,7 @@ class NeuralGenerator(object):
         """
 
         # Feed-forward calculation only, returns the result of the convolution post-activation 
-        self.compute_features = self.compile(self.model.tensor_inputs.values(),
+        self.compute_features = self.compile([self.model.tensor_img, self.model.tensor_map],
                                              self.model.get_outputs('sem', self.style_layers))
 
         # Patch matching calculation that uses only pre-calculated features and a slice of the patches.
@@ -453,11 +454,11 @@ class NeuralGenerator(object):
         # Extract the patches from the current image, as well as their magnitude.
         result = self.do_extract_patches(zip(self.style_layers, self.model.get_outputs('conv', self.style_layers)))
 
-        # Multiple style layers are optimized separately, usually sem3_1 and sem4_1.
+        # Multiple style layers are optimized separately, usually conv3_1 and conv4_1 — semantic data not used here.
         for l, matches, patches in zip(self.style_layers, self.tensor_matches, result[0::3]):
             # Compute the mean squared error between the current patch and the best matching style patch.
             # Ignore the last channels (from semantic map) so errors returned are indicative of image only.
-            loss = T.mean((patches - matches[:,:self.semantic_channel[l]]) ** 2.0)
+            loss = T.mean((patches - matches[:,:self.model.channels[l]]) ** 2.0)
             style_loss.append(('style', l, args.style_weight * loss))
         return style_loss
 

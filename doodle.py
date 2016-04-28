@@ -111,14 +111,14 @@ class Model(object):
         self.setup_model()
         self.load_data()
 
-    def setup_model(self):
+    def setup_model(self, input=None):
         """Use lasagne to create a network of convolution layers, first using VGG19 as the framework
         and then adding augmentations for Semantic Style Transfer.
         """
         net, self.channels = {}, {}
 
         # Primary network for the main image. These are convolution only, and stop at layer 4_2 (rest unused).
-        net['img']     = InputLayer((1, 3, None, None))
+        net['img']     = input or InputLayer((None, 3, None, None))
         net['conv1_1'] = ConvLayer(net['img'],     64, 3, pad=1)
         net['conv1_2'] = ConvLayer(net['conv1_1'], 64, 3, pad=1)
         net['pool1']   = PoolLayer(net['conv1_2'], 2, mode='average_exc_pad')

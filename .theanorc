@@ -1,6 +1,0 @@
-[global]
-device=gpu
-floatX=float32
-
-[nvcc]
-fastmath=True

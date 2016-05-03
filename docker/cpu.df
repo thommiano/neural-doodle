@@ -1,10 +1,8 @@
-FROM nvidia/cuda:7.5-cudnn4-devel
+FROM ubuntu:14.04
 
 # Install dependencies
-
 RUN apt-get update               && \
     apt-get install --assume-yes    \
-        "module-init-tools"         \
         "build-essential"           \
         "cmake"                     \
         "git"                       \
@@ -42,14 +40,8 @@ RUN python3 -m pip install -r "requirements.txt"
 COPY samples samples
 COPY doodle.py .
 
-# Copy Theano's configuration
-
-COPY .theanorc /root/
-
 # Get a pre-trained neural network (VGG19)
-
 RUN wget "https://github.com/alexjc/neural-doodle/releases/download/v0.0/vgg19_conv.pkl.bz2"
 
 # Set an entrypoint to the main doodle.py script
-
-ENTRYPOINT ["python3", "doodle.py", "--device=gpu"]
+ENTRYPOINT ["python3", "doodle.py"]

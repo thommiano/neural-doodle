@@ -1,9 +1,9 @@
-FROM ubuntu:14.04
+FROM nvidia/cuda:7.5-cudnn4-devel
 
 # Install dependencies
-
 RUN apt-get update               && \
     apt-get install --assume-yes    \
+        "module-init-tools"         \
         "build-essential"           \
         "cmake"                     \
         "git"                       \
@@ -42,9 +42,7 @@ COPY samples samples
 COPY doodle.py .
 
 # Get a pre-trained neural network (VGG19)
-
 RUN wget "https://github.com/alexjc/neural-doodle/releases/download/v0.0/vgg19_conv.pkl.bz2"
 
 # Set an entrypoint to the main doodle.py script
-
-ENTRYPOINT ["python3", "doodle.py"]
+ENTRYPOINT ["python3", "doodle.py", "--device=gpu"]

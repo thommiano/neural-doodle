@@ -30,12 +30,12 @@ RUN apt-get update -qq            && \
         "python3-networkx"          \
         "python3-tk"             &&  \
     rm -rf /var/lib/apt/lists/*  &&  \
-    python3 -m pip install "cython"
+    python3 -m pip -q install "cython"
 
 # Install requirements before copying project files
 WORKDIR /nd
 COPY requirements.txt .
-RUN python3 -m pip install -r "requirements.txt"
+RUN python3 -m pip -q install -r "requirements.txt"
 
 # Copy only required project files
 COPY doodle.py .

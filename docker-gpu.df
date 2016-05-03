@@ -1,8 +1,8 @@
 FROM nvidia/cuda:7.5-cudnn4-devel
 
 # Install dependencies
-RUN apt-get update               && \
-    apt-get install --assume-yes    \
+RUN apt-get update -qq            && \
+    apt-get install --assume-yes -qq \
         "module-init-tools"         \
         "build-essential"           \
         "cmake"                     \
@@ -28,17 +28,16 @@ RUN apt-get update               && \
         "python3-matplotlib"        \
         "python3-six"               \
         "python3-networkx"          \
-        "python3-tk"             && \
-    rm -rf /var/lib/apt/lists/*  && \
+        "python3-tk"             &&  \
+    rm -rf /var/lib/apt/lists/*  &&  \
     python3 -m pip install "cython"
 
 # Install requirements before copying project files
-WORKDIR /neural-doodle
+WORKDIR /nd
 COPY requirements.txt .
 RUN python3 -m pip install -r "requirements.txt"
 
 # Copy only required project files
-COPY samples samples
 COPY doodle.py .
 
 # Get a pre-trained neural network (VGG19)

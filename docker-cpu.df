@@ -1,8 +1,8 @@
 FROM ubuntu:14.04
 
 # Install dependencies
-RUN apt-get update               && \
-    apt-get install --assume-yes    \
+RUN apt-get update -qq           &&  \
+    apt-get install -qq --assume-yes \
         "build-essential"           \
         "cmake"                     \
         "git"                       \
@@ -27,21 +27,20 @@ RUN apt-get update               && \
         "python3-matplotlib"        \
         "python3-six"               \
         "python3-networkx"          \
-        "python3-tk"             && \
-    rm -rf /var/lib/apt/lists/*  && \
+        "python3-tk"             &&  \
+    rm -rf /var/lib/apt/lists/*  &&  \
     python3 -m pip install "cython"
 
 # Install requirements before copying project files
-WORKDIR /neural-doodle
+WORKDIR /nd
 COPY requirements.txt .
 RUN python3 -m pip install -r "requirements.txt"
 
 # Copy only required project files
-COPY samples samples
 COPY doodle.py .
 
 # Get a pre-trained neural network (VGG19)
 RUN wget "https://github.com/alexjc/neural-doodle/releases/download/v0.0/vgg19_conv.pkl.bz2"
 
 # Set an entrypoint to the main doodle.py script
-ENTRYPOINT ["python3", "doodle.py"]
+ENTRYPOINT ["python3", "doodle.py", "--device=cpu"]

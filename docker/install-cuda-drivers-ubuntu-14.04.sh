@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 # Install dependencies
-
 apt-get update
 apt-get install --assume-yes                      \
     "linux-source"                                \
@@ -11,7 +10,6 @@ apt-get install --assume-yes                      \
     "wget"
 
 # Install NVIDIA CUDA with NVIDIA GPU drivers
-
 CUDA_REPOSITORY="cuda-repo-ubuntu1404_7.5-18_amd64.deb"
 CUDA_REPOSITORY_URL="http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1404/x86_64"
 

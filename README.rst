@@ -11,7 +11,7 @@ The ``doodle.py`` script generates a new image by using one, two, three or four 
 **NOTE**: Making a ``#NeuralDoodle`` is a skill. The parameters in the script were adjusted to work well by default and with the examples below. For new images, you may need to adjust values and modify on your input data too. It takes practice, but you can reach almost photo-realistic results if you iterate! (`Ask for advice here or see examples <https://github.com/alexjc/neural-doodle/issues?q=label%3Aadvice>`_.)
 
 1. `Examples & Usage <#1-examples--usage>`_
-2. `Installation <#2-installation-setup>`_
+2. `Installation <#2-installation--setup>`_
 3. `Troubleshooting <#3-troubleshooting-problems>`_
 4. `Frequent Questions <#4-frequent-questions>`_
 
@@ -111,7 +111,7 @@ You can configure the algorithm using the following parameters. Type ``python3 d
 2.a) Using Docker Image (recommended)
 -------------------------------
 
-The easiest way to get up-and-running is to `install Docker <https://www.docker.com/>`_. Then, you should be able to downloand and run the pre-built image using the `docker` command line tool.  Find out more about the `alexjc/neural-doodle` image on its `Docker Hub https://hub.docker.com/r/alexjc/neural-doodle/`_ page.
+The easiest way to get up-and-running is to `install Docker <https://www.docker.com/>`_. Then, you should be able to downloand and run the pre-built image using the `docker` command line tool.  Find out more about the `alexjc/neural-doodle` image on its `Docker Hub https://hub.docker.com/r/alexjc/neural-doodle/>`_ page.
 
 The easiest way to run the script from the docker image is to setup an easy access command called `doodle`. This will automatically:
 
@@ -120,7 +120,7 @@ The easiest way to run the script from the docker image is to setup an easy acce
 
 This is how you can do it in your terminal console on OSX or Linux:
 
-..code bash::
+..code:: bash
     # Setup the alias. Put this in your .bash_rc or .zshrc file so it's available at startup.
     alias doodle="docker run -v samples:/nd/samples -w /nd/samples \
                              -v frames:/nd/frames -w /nd/frames \
@@ -137,8 +137,8 @@ This is how you can do it in your terminal console on OSX or Linux:
 
 This project requires Python 3.4+ and you'll also need ``numpy`` and ``scipy`` (numerical computing libraries) as well as ``python3-dev`` installed system-wide.  If you want more detailed instructions, follow these:
 
-1. `Linux Installation of Lasagne <https://github.com/Lasagne/Lasagne/wiki/From-Zero-to-Lasagne-on-Ubuntu-14.04>`_ **(beginner)**
-2. `Mac OSX Installation of Lasagne <http://deeplearning.net/software/theano/install.html#mac-os>`_ **(intermediate)**
+1. `Linux Installation of Lasagne <https://github.com/Lasagne/Lasagne/wiki/From-Zero-to-Lasagne-on-Ubuntu-14.04>`_ **(intermediate)**
+2. `Mac OSX Installation of Lasagne <http://deeplearning.net/software/theano/install.html#mac-os>`_ **(advanced)**
 3. `Windows Installation of Lasagne <https://github.com/Lasagne/Lasagne/wiki/From-Zero-to-Lasagne-on-Windows-7-%2864-bit%29>`_ **(expert)**
 
 Afterward fetching the repository, you can run the following commands from your terminal to setup a local environment:

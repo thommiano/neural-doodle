@@ -78,7 +78,7 @@ os.environ.setdefault('THEANO_FLAGS', 'floatX=float32,device={},force_device=Tru
 
 # Scientific & Imaging Libraries
 import numpy as np
-import scipy.optimize
+import scipy.optimize, scipy.ndimage, scipy.misc
 import PIL
 
 # Numeric Computing (GPU)

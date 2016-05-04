@@ -76,10 +76,10 @@ print('{}Neural Doodle for semantic style transfer.{}'.format(ansi.CYAN_B, ansi.
 os.environ.setdefault('THEANO_FLAGS', 'floatX=float32,device={},force_device=True,'\
                                       'print_active_device=False'.format(args.device))
 
-# Scientific Libraries
+# Scientific & Imaging Libraries
 import numpy as np
 import scipy.optimize
-import skimage.transform
+import PIL
 
 # Numeric Computing (GPU)
 import theano
@@ -320,23 +320,30 @@ class NeuralGenerator(object):
     # Initialization & Setup
     #------------------------------------------------------------------------------------------------------------------
 
+    def rescale_image(self, img, scale):
+        """Re-implementing skimage.transform.scale without the extra dependency. Saves a lot of space and hassle!
+        """
+        output = scipy.misc.toimage(img, cmin=0.0, cmax=255)
+        output.thumbnail((int(output.size[0]*scale), int(output.size[1]*scale)), PIL.Image.ANTIALIAS)
+        return np.asarray(output)
+
     def prepare_content(self, scale=1.0):
         """Called each phase of the optimization, rescale the original content image and its map to use as inputs.
         """
-        content_image = skimage.transform.rescale(self.content_img_original, scale) * 255.0
-        self.content_img = self.model.prepare_image(content_image)
+        content_img = self.rescale_image(self.content_img_original, scale)
+        self.content_img = self.model.prepare_image(content_img)
 
-        content_map = skimage.transform.rescale(self.content_map_original, scale) * 255.0
+        content_map = self.rescale_image(self.content_map_original, scale)
         self.content_map = content_map.transpose((2, 0, 1))[np.newaxis].astype(np.float32)
 
     def prepare_style(self, scale=1.0):
         """Called each phase of the optimization, process the style image according to the scale, then run it
         through the model to extract intermediate outputs (e.g. sem4_1) and turn them into patches.
         """
-        style_image = skimage.transform.rescale(self.style_img_original, scale) * 255.0
-        self.style_img = self.model.prepare_image(style_image)
+        style_img = self.rescale_image(self.style_img_original, scale)
+        self.style_img = self.model.prepare_image(style_img)
 
-        style_map = skimage.transform.rescale(self.style_map_original, scale) * 255.0
+        style_map = self.rescale_image(self.style_map_original, scale)
         self.style_map = style_map.transpose((2, 0, 1))[np.newaxis].astype(np.float32)
 
         # Compile a function to run on the GPU to extract patches for all layers at once.

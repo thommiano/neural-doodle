@@ -2,7 +2,6 @@ Neural Doodle
 =============
 
 .. image:: docs/Workflow.gif
-    :align: right
 
 Use a deep neural network to borrow the skills of real artists and turn your two-bit doodles into masterpieces! This project is an implementation of `Semantic Style Transfer <http://arxiv.org/abs/1603.01768>`_ (Champandard, 2016), based on the `Neural Patches <http://arxiv.org/abs/1601.04589>`_ algorithm (Li, 2016). Read more about the motivation in this `in-depth article <https://nucl.ai/blog/neural-doodles/>`_ and watch this `workflow video <https://www.youtube.com/watch?v=fu2fzx4w3mI>`_ for inspiration.
 
@@ -108,8 +107,10 @@ You can configure the algorithm using the following parameters. Type ``python3 d
 2. Installation & Setup
 =======================
 
+.. image:: docs/DockerConsole.gif
+
 2.a) Using Docker Image (recommended)
--------------------------------
+-------------------------------------
 
 The easiest way to get up-and-running is to `install Docker <https://www.docker.com/>`_. Then, you should be able to downloand and run the pre-built image using the `docker` command line tool.  Find out more about the `alexjc/neural-doodle` image on its `Docker Hub https://hub.docker.com/r/alexjc/neural-doodle/>`_ page.
 
@@ -130,7 +131,6 @@ This is how you can do it in your terminal console on OSX or Linux:
     doodle --help
 
 *NOTE*: If you want to run on your NVIDIA GPU, you can instead use the image `alexjc/neural-doodle:gpu` which comes with CUDA and CUDNN pre-installed in the image.  See the scripts in `docker/*.sh` for how to setup your host machine. (advanced)
-
 
 2.b) Manual Installation (optional)
 -----------------------------------

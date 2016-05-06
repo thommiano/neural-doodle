@@ -124,8 +124,7 @@ This is how you can do it in your terminal console on OSX or Linux:
 .. code:: bash
 
     # Setup the alias. Put this in your .bash_rc or .zshrc file so it's available at startup.
-    alias doodle="docker run -v $(pwd)/samples:/nd/samples -w /nd/samples \
-                             -v $(pwd)/frames:/nd/frames -w /nd/frames \
+    alias doodle="docker run -v $(pwd)/samples:/nd/samples -v $(pwd)/frames:/nd/frames \
                              -it alexjc/neural-doodle"
     
     # Now run any of the examples above using this alias, without the `.py` extension.

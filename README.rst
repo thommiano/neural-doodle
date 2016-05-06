@@ -112,25 +112,27 @@ You can configure the algorithm using the following parameters. Type ``python3 d
 2.a) Using Docker Image (recommended)
 -------------------------------------
 
-The easiest way to get up-and-running is to `install Docker <https://www.docker.com/>`_. Then, you should be able to downloand and run the pre-built image using the `docker` command line tool.  Find out more about the `alexjc/neural-doodle` image on its `Docker Hub https://hub.docker.com/r/alexjc/neural-doodle/>`_ page.
+The easiest way to get up-and-running is to `install Docker <https://www.docker.com/>`_. Then, you should be able to downloand and run the pre-built image using the ``docker`` command line tool.  Find out more about the ``alexjc/neural-doodle`` image on its `Docker Hub <https://hub.docker.com/r/alexjc/neural-doodle/>`_ page.
 
 The easiest way to run the script from the docker image is to setup an easy access command called `doodle`. This will automatically:
 
-* Mount the `frames` folder from the current directory into the instance for visualization.
-* Expose the `samples` folder from the current directory so the script can access files!
+* Mount the ``frames`` folder from current directory into the instance for visualization.
+* Expose the ``samples`` folder from the current directory so the script can access files!
 
 This is how you can do it in your terminal console on OSX or Linux:
 
-..code:: bash
+.. code:: bash
+
     # Setup the alias. Put this in your .bash_rc or .zshrc file so it's available at startup.
-    alias doodle="docker run -v samples:/nd/samples -w /nd/samples \
-                             -v frames:/nd/frames -w /nd/frames \
+    alias doodle="docker run -v $(pwd)/samples:/nd/samples -w /nd/samples \
+                             -v $(pwd)/frames:/nd/frames -w /nd/frames \
                              -it alexjc/neural-doodle"
     
     # Now run any of the examples above using this alias, without the `.py` extension.
     doodle --help
 
-*NOTE*: If you want to run on your NVIDIA GPU, you can instead use the image `alexjc/neural-doodle:gpu` which comes with CUDA and CUDNN pre-installed in the image.  See the scripts in `docker/*.sh` for how to setup your host machine. (advanced)
+If you want to run on your NVIDIA GPU, you can instead use the image ``alexjc/neural-doodle:gpu`` which comes with CUDA and CUDNN pre-installed in the image.  See the scripts in ``docker/*.sh`` for how to setup your host machine. (advanced)
+
 
 2.b) Manual Installation (optional)
 -----------------------------------

@@ -261,7 +261,7 @@ There are many online services that provide basic style transfer with neural net
 .. |Python Version| image:: http://aigamedev.github.io/scikit-neuralnetwork/badge_python.svg
     :target: https://www.python.org/
 
-.. |License Type| image:: https://img.shields.io/badge/license-New%20BSD-blue.svg
+.. |License Type| image:: https://img.shields.io/badge/license-AGPL-blue.svg
     :target: https://github.com/alexjc/neural-doodle/blob/master/LICENSE
 
 .. |Project Stars| image:: https://img.shields.io/github/stars/alexjc/neural-doodle.svg?style=flat

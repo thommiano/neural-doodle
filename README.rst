@@ -1,5 +1,24 @@
 **STILL TESTING**
 
+Current error:
+````
+user@user ~/P/neural-doodle> nvidia-docker run socraticdatum/neural-doodle
+Neural Doodle for semantic style transfer.
+  - Using device `gpu` for processing the images.
+Traceback (most recent call last):
+  File "doodle.py", line 657, in <module>
+    generator = NeuralGenerator()
+  File "doodle.py", line 234, in __init__
+    self.style_img_original, self.style_map_original = self.load_images('style', args.style)
+  File "doodle.py", line 288, in load_images
+    basename, _ = os.path.splitext(filename)
+  File "/usr/lib/python3.4/posixpath.py", line 122, in splitext
+    return genericpath._splitext(p, sep, None, extsep)
+  File "/usr/lib/python3.4/genericpath.py", line 118, in _splitext
+    sepIndex = p.rfind(sep)
+AttributeError: 'NoneType' object has no attribute 'rfind'
+````
+
 Original source: https://github.com/alexjc/neural-doodle
 
 Changes:

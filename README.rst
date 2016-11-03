@@ -7,8 +7,10 @@ Updates for pascal cards. Specifically, now using CUDA8 and cuDNN5:
 
 * CUDA8: https://github.com/thommiano/neural-doodle/blob/master/docker/install-cuda-drivers-ubuntu-14.04.sh
 * CUDA8 and cuDNN5: https://github.com/thommiano/neural-doodle/blob/master/docker-gpu.df 
+* Duplicated `docker-gpu.df` and renamed it `Dockerfile` in order to create a docker image. Couldn't figure out how run it otherwise. Any pointers on the right way to do this would be appreciated.
 
 Original problem leading to these changes: https://github.com/NVIDIA/nvidia-docker/issues/237
+
 
 =============
 

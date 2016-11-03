@@ -6,6 +6,8 @@ Updates for pascal cards. Specifically, now using CUDA8 and cuDNN5:
 * CUDA8: https://github.com/thommiano/neural-doodle/blob/master/docker/install-cuda-drivers-ubuntu-14.04.sh
 * CUDA8 and cuDNN5: https://github.com/thommiano/neural-doodle/blob/master/docker-gpu.df 
 
+Original problem leading to these changes: https://github.com/NVIDIA/nvidia-docker/issues/237
+
 =============
 
 Neural Doodle

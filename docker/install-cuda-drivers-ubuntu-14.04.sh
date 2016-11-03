@@ -10,7 +10,10 @@ apt-get install --assume-yes                      \
     "wget"
 
 # Install NVIDIA CUDA with NVIDIA GPU drivers
-CUDA_REPOSITORY="cuda-repo-ubuntu1404_7.5-18_amd64.deb"
+
+# CUDA_REPOSITORY="cuda-repo-ubuntu1404_7.5-18_amd64.deb"
+CUDA_REPOSITORY="cuda-repo-ubuntu1404_8.0.44-1_amd64.deb"
+
 CUDA_REPOSITORY_URL="http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1404/x86_64"
 
 wget --directory-prefix="/tmp/" --continue "$CUDA_REPOSITORY_URL/$CUDA_REPOSITORY"

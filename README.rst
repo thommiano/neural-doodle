@@ -6,6 +6,7 @@ Updates for pascal cards. Specifically, now using CUDA8 and cuDNN5.
 - CUDA8 and cuDNN5: https://github.com/thommiano/neural-doodle/blob/master/docker-gpu.df 
 
 =============
+
 Neural Doodle
 =============
 
